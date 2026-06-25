@@ -25,11 +25,5 @@ dependencyResolutionManagement {
 rootProject.name = "CatalogApp"
 include(":app")
 include(":core:network")
-include(":core:database")
-include(":core:designsystem")
 include(":core:common")
-include(":data:product")
 include(":domain:product")
-include(":feature:catalog")
-include(":feature:detail")
-include(":feature:search")
