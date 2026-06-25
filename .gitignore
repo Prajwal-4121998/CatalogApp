@@ -1,0 +1,32 @@
+# Built outputs
+/build
+app/build
+core/*/build
+data/*/build
+domain/*/build
+feature/*/build
+
+# Gradle
+.gradle
+gradle/wrapper/gradle-wrapper.jar
+local.properties
+
+# Android Studio / IntelliJ
+.idea/
+*.iml
+*.iws
+*.ipr
+captures/
+.externalNativeBuild/
+.cxx/
+*.DS_Store
+
+# Keystore — NEVER commit this
+*.jks
+*.keystore
+
+# Google Services (if added later)
+google-services.json
+
+# Secrets
+secrets.properties
