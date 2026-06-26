@@ -48,17 +48,17 @@ jobs:
         run: chmod +x gradlew
 
       - name: Run Android Lint
-        run: ./gradlew lint --stacktrace
+        run: ./gradlew lintDevDebug --stacktrace
 
       - name: Run unit tests
-        run: ./gradlew test --stacktrace
+        run: ./gradlew testDevDebugUnitTest --stacktrace
 
       - name: Upload lint report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: lint-report
-          path: '**/build/reports/lint-results*.html'
+          path: app/build/reports/lint-results-devDebug.html
           retention-days: 7
 
       - name: Upload test results
@@ -71,7 +71,7 @@ jobs:
 
   # ── Job 2: Build ──────────────────────────────────────────────────────────
   build:
-    name: Build APK
+    name: Build APK / AAB
     runs-on: ubuntu-latest
     needs: lint-and-test
 
@@ -100,25 +100,66 @@ jobs:
       - name: Grant gradlew permission
         run: chmod +x gradlew
 
-      - name: Build Debug APK
-        run: ./gradlew assembleDebug --stacktrace
+      - name: Decode keystore
+        if: github.ref_name == 'main' || github.ref_name == 'develop'
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > ${{ github.workspace }}/catalogapp-release.jks
+          echo "KEYSTORE_FILE=${{ github.workspace }}/catalogapp-release.jks" >> $GITHUB_ENV
 
-      - name: Upload Debug APK
+      - name: Set signing environment variables
+        if: github.ref_name == 'main' || github.ref_name == 'develop'
+        run: |
+          echo "KEYSTORE_PASSWORD=${{ secrets.KEYSTORE_PASSWORD }}" >> $GITHUB_ENV
+          echo "KEY_ALIAS=${{ secrets.KEY_ALIAS }}" >> $GITHUB_ENV
+          echo "KEY_PASSWORD=${{ secrets.KEY_PASSWORD }}" >> $GITHUB_ENV
+
+      - name: Build Dev Debug APK (feature branches)
+        if: github.ref_name != 'develop' && github.ref_name != 'main'
+        run: ./gradlew assembleDevDebug --stacktrace
+
+      - name: Build Staging Debug APK (develop)
+        if: github.ref_name == 'develop'
+        run: ./gradlew assembleStagingDebug --stacktrace
+
+      - name: Build Prod Release AAB (main)
+        if: github.ref_name == 'main'
+        run: ./gradlew bundleProdRelease --stacktrace
+
+      - name: Upload Dev APK
+        if: github.ref_name != 'develop' && github.ref_name != 'main'
         uses: actions/upload-artifact@v4
         with:
-          name: debug-apk-${{ github.run_number }}
-          path: app/build/outputs/apk/debug/*.apk
+          name: dev-debug-apk-${{ github.run_number }}
+          path: app/build/outputs/apk/dev/debug/*.apk
           retention-days: 7
 
+      - name: Upload Staging APK
+        if: github.ref_name == 'develop'
+        uses: actions/upload-artifact@v4
+        with:
+          name: staging-debug-apk-${{ github.run_number }}
+          path: app/build/outputs/apk/staging/debug/*.apk
+          retention-days: 1
+
+      - name: Upload Prod AAB
+        if: github.ref_name == 'main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: prod-release-aab-${{ github.run_number }}
+          path: app/build/outputs/bundle/prodRelease/*.aab
+          retention-days: 1
+
+      - name: Clean up keystore
+        if: always()
+        run: rm -f ${{ github.workspace }}/catalogapp-release.jks
+
   # ── Job 3: Deploy ─────────────────────────────────────────────────────────
-  # Placeholder — Firebase App Distribution added in Module 6
-  # Only activates after first real UI screen exists
   deploy:
-    name: Deploy (Pending Module 6)
+    name: Deploy (Module 6 - pending UI)
     runs-on: ubuntu-latest
     needs: build
     if: github.ref_name == 'develop' || github.ref_name == 'main'
 
     steps:
       - name: Deploy placeholder
-        run: echo "Firebase App Distribution will be configured in Module 6 once UI screens exist"
+        run: echo "Firebase App Distribution configured in Module 6 after first UI screen"
