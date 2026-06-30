@@ -5,6 +5,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.detekt)
     jacoco
 }
 
@@ -291,4 +292,21 @@ tasks.register<JacocoCoverageVerification>("jacocoTestCoverageVerification") {
             }
         )
     )
+}
+
+// ─── Detekt configuration ──────────────────────────────────────────────────
+detekt {
+    config.setFrom(files("$rootDir/config/detekt/detekt.yml"))
+    buildUponDefaultConfig = true
+    autoCorrect = false
+    source.setFrom("src/main/java", "src/main/kotlin")
+}
+
+tasks.withType<io.gitlab.arturbosch.detekt.Detekt>().configureEach {
+    reports {
+        html.required.set(true)
+        xml.required.set(true)
+        txt.required.set(false)
+        sarif.required.set(false)
+    }
 }
