@@ -5,6 +5,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
+    jacoco
 }
 
 // ─── Keystore properties ──────────────────────────────────────────────────────
@@ -136,4 +137,158 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
+}
+
+// ─── JaCoCo configuration ─────────────────────────────────────────────────────
+jacoco {
+    toolVersion = "0.8.12"
+}
+
+// Enable coverage data collection during unit tests
+tasks.withType<Test> {
+    configure<JacocoTaskExtension> {
+        isIncludeNoLocationClasses = true
+        excludes = listOf("jdk.internal.*")
+    }
+    testLogging {
+        events("passed", "skipped", "failed")
+        showStandardStreams = true
+        exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+    }
+}
+
+// ─── JaCoCo report task ───────────────────────────────────────────────────────
+tasks.register<JacocoReport>("jacocoTestReport") {
+    dependsOn(
+        "testDevDebugUnitTest",
+        ":domain:product:test",
+        ":core:common:test"
+    )
+
+    reports {
+        xml.required.set(true)
+        html.required.set(true)
+    }
+
+    val fileFilter = listOf(
+        "**/R.class", "**/R\$*.class", "**/BuildConfig.*",
+        "**/Manifest*.*", "**/*Test*.*", "android/**/*.*",
+        "**/*Hilt*.*", "**/*Dagger*.*", "**/*_Factory*.*",
+        "**/*MembersInjector*.*", "**/di/**",
+        "**/hilt_aggregated_deps/**",
+        "**/dagger/hilt/**"
+    )
+
+    val appTree = fileTree(layout.buildDirectory.get()) {
+        include(
+            "tmp/kotlin-classes/devDebug/**/*.class",
+            "intermediates/javac/devDebug/**/*.class"
+        )
+        exclude(fileFilter)
+    }
+
+    val domainTree = fileTree(project(":domain:product").layout.buildDirectory.get()) {
+        include("classes/kotlin/main/**/*.class")
+        exclude(fileFilter)
+    }
+
+    val coreCommonTree = fileTree(project(":core:common").layout.buildDirectory.get()) {
+        include("classes/kotlin/main/**/*.class")
+        exclude(fileFilter)
+    }
+
+    sourceDirectories.setFrom(
+        files(
+            "src/main/java",
+            "${project(":domain:product").projectDir}/src/main/java",
+            "${project(":core:common").projectDir}/src/main/java"
+        )
+    )
+
+    classDirectories.setFrom(files(appTree, domainTree, coreCommonTree))
+
+    executionData.setFrom(
+        files(
+            fileTree(layout.buildDirectory.get()) {
+                include("outputs/unit_test_code_coverage/devDebugUnitTest/testDevDebugUnitTest.exec")
+            },
+            fileTree(project(":domain:product").layout.buildDirectory.get()) {
+                include("jacoco/test.exec")
+            },
+            fileTree(project(":core:common").layout.buildDirectory.get()) {
+                include("jacoco/test.exec")
+            }
+        )
+    )
+}
+
+// ─── Coverage threshold enforcement ───────────────────────────────────────────
+tasks.register<JacocoCoverageVerification>("jacocoTestCoverageVerification") {
+    dependsOn("jacocoTestReport")
+
+    violationRules {
+        rule {
+            limit {
+                minimum = "0.35".toBigDecimal()
+            }
+        }
+        rule {
+            element = "CLASS"
+            includes = listOf("com.example.catalogapp.domain.*")
+            limit {
+                minimum = "0.60".toBigDecimal()
+            }
+        }
+    }
+
+    val fileFilter = listOf(
+        "**/R.class", "**/R\$*.class", "**/BuildConfig.*",
+        "**/Manifest*.*", "**/*Test*.*", "android/**/*.*",
+        "**/*Hilt*.*", "**/*Dagger*.*", "**/*_Factory*.*",
+        "**/hilt_aggregated_deps/**",
+        "**/dagger/hilt/**"
+    )
+
+    // Collect classes from all modules
+    val appTree = fileTree(layout.buildDirectory.get()) {
+        include(
+            "tmp/kotlin-classes/devDebug/**/*.class",
+            "intermediates/javac/devDebug/**/*.class"
+        )
+        exclude(fileFilter)
+    }
+
+    val domainTree = fileTree(project(":domain:product").layout.buildDirectory.get()) {
+        include("classes/kotlin/main/**/*.class")
+        exclude(fileFilter)
+    }
+
+    val coreCommonTree = fileTree(project(":core:common").layout.buildDirectory.get()) {
+        include("classes/kotlin/main/**/*.class")
+        exclude(fileFilter)
+    }
+
+    sourceDirectories.setFrom(
+        files(
+            "src/main/java",
+            "${project(":domain:product").projectDir}/src/main/java",
+            "${project(":core:common").projectDir}/src/main/java"
+        )
+    )
+
+    classDirectories.setFrom(files(appTree, domainTree, coreCommonTree))
+
+    executionData.setFrom(
+        files(
+            fileTree(layout.buildDirectory.get()) {
+                include("outputs/unit_test_code_coverage/devDebugUnitTest/testDevDebugUnitTest.exec")
+            },
+            fileTree(project(":domain:product").layout.buildDirectory.get()) {
+                include("jacoco/test.exec")
+            },
+            fileTree(project(":core:common").layout.buildDirectory.get()) {
+                include("jacoco/test.exec")
+            }
+        )
+    )
 }
