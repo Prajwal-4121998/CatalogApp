@@ -130,6 +130,7 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
     implementation(libs.hilt.android)
+    implementation(project(":data:product"))
     ksp(libs.hilt.compiler)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
@@ -163,7 +164,8 @@ tasks.register<JacocoReport>("jacocoTestReport") {
     dependsOn(
         "testDevDebugUnitTest",
         ":domain:product:test",
-        ":core:common:test"
+        ":core:common:test",
+        ":data:product:testDebugUnitTest"
     )
 
     reports {
@@ -198,15 +200,21 @@ tasks.register<JacocoReport>("jacocoTestReport") {
         exclude(fileFilter)
     }
 
+    val dataTree = fileTree(project(":data:product").layout.buildDirectory.get()) {
+        include("tmp/kotlin-classes/debug/**/*.class")
+        exclude(fileFilter)
+    }
+
     sourceDirectories.setFrom(
         files(
             "src/main/java",
             "${project(":domain:product").projectDir}/src/main/java",
-            "${project(":core:common").projectDir}/src/main/java"
+            "${project(":core:common").projectDir}/src/main/java",
+            "${project(":data:product").projectDir}/src/main/java"
         )
     )
 
-    classDirectories.setFrom(files(appTree, domainTree, coreCommonTree))
+    classDirectories.setFrom(files(appTree, domainTree, coreCommonTree, dataTree))
 
     executionData.setFrom(
         files(
@@ -218,6 +226,9 @@ tasks.register<JacocoReport>("jacocoTestReport") {
             },
             fileTree(project(":core:common").layout.buildDirectory.get()) {
                 include("jacoco/test.exec")
+            },
+            fileTree (project(":data:product").layout.buildDirectory.get()) {
+                include("outputs/unit_test_code_coverage/debugUnitTest/testDebugUnitTest.exec")
             }
         )
     )
@@ -269,15 +280,21 @@ tasks.register<JacocoCoverageVerification>("jacocoTestCoverageVerification") {
         exclude(fileFilter)
     }
 
+    val dataTree = fileTree(project(":data:product").layout.buildDirectory.get()) {
+        include("tmp/kotlin-classes/debug/**/*.class")
+        exclude(fileFilter)
+    }
+
     sourceDirectories.setFrom(
         files(
             "src/main/java",
             "${project(":domain:product").projectDir}/src/main/java",
-            "${project(":core:common").projectDir}/src/main/java"
+            "${project(":core:common").projectDir}/src/main/java",
+            "${project(":data:product").projectDir}/src/main/java"
         )
     )
 
-    classDirectories.setFrom(files(appTree, domainTree, coreCommonTree))
+    classDirectories.setFrom(files(appTree, domainTree, coreCommonTree, dataTree))
 
     executionData.setFrom(
         files(
@@ -289,6 +306,9 @@ tasks.register<JacocoCoverageVerification>("jacocoTestCoverageVerification") {
             },
             fileTree(project(":core:common").layout.buildDirectory.get()) {
                 include("jacoco/test.exec")
+            },
+            fileTree(project(":data:product").layout.buildDirectory.get()) {
+                include("outputs/unit_test_code_coverage/debugUnitTest/testDebugUnitTest.exec")
             }
         )
     )
