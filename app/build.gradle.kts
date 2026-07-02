@@ -130,6 +130,7 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
     implementation(libs.hilt.android)
+    implementation(project(":data:product"))
     ksp(libs.hilt.compiler)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
@@ -163,7 +164,8 @@ tasks.register<JacocoReport>("jacocoTestReport") {
     dependsOn(
         "testDevDebugUnitTest",
         ":domain:product:test",
-        ":core:common:test"
+        ":core:common:test",
+        ":data:product:testDebugUnitTest"
     )
 
     reports {
@@ -177,7 +179,12 @@ tasks.register<JacocoReport>("jacocoTestReport") {
         "**/*Hilt*.*", "**/*Dagger*.*", "**/*_Factory*.*",
         "**/*MembersInjector*.*", "**/di/**",
         "**/hilt_aggregated_deps/**",
-        "**/dagger/hilt/**"
+        "**/dagger/hilt/**",
+        "**/*Database*.*",
+        "**/*Database_Impl*.*",
+        // Exclude Kotlin compiler-generated lambda/coroutine synthetic classes
+        "**/*\$*\$*.*",
+        "**/*\$inlined*.*"
     )
 
     val appTree = fileTree(layout.buildDirectory.get()) {
@@ -198,15 +205,21 @@ tasks.register<JacocoReport>("jacocoTestReport") {
         exclude(fileFilter)
     }
 
+    val dataTree = fileTree(project(":data:product").layout.buildDirectory.get()) {
+        include("intermediates/built_in_kotlinc/debug/compileDebugKotlin/classes/**/*.class")
+        exclude(fileFilter)
+    }
+
     sourceDirectories.setFrom(
         files(
             "src/main/java",
             "${project(":domain:product").projectDir}/src/main/java",
-            "${project(":core:common").projectDir}/src/main/java"
+            "${project(":core:common").projectDir}/src/main/java",
+            "${project(":data:product").projectDir}/src/main/java"
         )
     )
 
-    classDirectories.setFrom(files(appTree, domainTree, coreCommonTree))
+    classDirectories.setFrom(files(appTree, domainTree, coreCommonTree, dataTree))
 
     executionData.setFrom(
         files(
@@ -218,6 +231,9 @@ tasks.register<JacocoReport>("jacocoTestReport") {
             },
             fileTree(project(":core:common").layout.buildDirectory.get()) {
                 include("jacoco/test.exec")
+            },
+            fileTree(project(":data:product").layout.buildDirectory.get()) {
+                include("jacoco/testDebugUnitTest.exec")
             }
         )
     )
@@ -228,16 +244,37 @@ tasks.register<JacocoCoverageVerification>("jacocoTestCoverageVerification") {
     dependsOn("jacocoTestReport")
 
     violationRules {
+        // Overall app threshold — excludes generated/untestable code via fileFilter
         rule {
             limit {
-                minimum = "0.35".toBigDecimal()
+                minimum = "0.55".toBigDecimal()
             }
         }
+
+        // Domain layer — pure business logic, highest bar
         rule {
             element = "CLASS"
             includes = listOf("com.example.catalogapp.domain.*")
             limit {
-                minimum = "0.60".toBigDecimal()
+                minimum = "0.70".toBigDecimal()
+            }
+        }
+
+        // Repository — critical class, must test error paths
+        rule {
+            element = "CLASS"
+            includes = listOf("com.example.catalogapp.data.product.repository.*")
+            limit {
+                minimum = "0.70".toBigDecimal()
+            }
+        }
+
+        // Mapper — simple pure functions, high bar achievable
+        rule {
+            element = "CLASS"
+            includes = listOf("com.example.catalogapp.data.product.mapper.*")
+            limit {
+                minimum = "0.85".toBigDecimal()
             }
         }
     }
@@ -247,7 +284,13 @@ tasks.register<JacocoCoverageVerification>("jacocoTestCoverageVerification") {
         "**/Manifest*.*", "**/*Test*.*", "android/**/*.*",
         "**/*Hilt*.*", "**/*Dagger*.*", "**/*_Factory*.*",
         "**/hilt_aggregated_deps/**",
-        "**/dagger/hilt/**"
+        "**/dagger/hilt/**",
+        "**/dao/**",
+        "**/*Database*.*",
+        "**/*Database_Impl*.*",
+        // Exclude Kotlin compiler-generated lambda/coroutine synthetic classes
+        "**/*\$*\$*.*",
+        "**/*\$inlined*.*"
     )
 
     // Collect classes from all modules
@@ -269,15 +312,21 @@ tasks.register<JacocoCoverageVerification>("jacocoTestCoverageVerification") {
         exclude(fileFilter)
     }
 
+    val dataTree = fileTree(project(":data:product").layout.buildDirectory.get()) {
+        include("intermediates/built_in_kotlinc/debug/compileDebugKotlin/classes/**/*.class")
+        exclude(fileFilter)
+    }
+
     sourceDirectories.setFrom(
         files(
             "src/main/java",
             "${project(":domain:product").projectDir}/src/main/java",
-            "${project(":core:common").projectDir}/src/main/java"
+            "${project(":core:common").projectDir}/src/main/java",
+            "${project(":data:product").projectDir}/src/main/java"
         )
     )
 
-    classDirectories.setFrom(files(appTree, domainTree, coreCommonTree))
+    classDirectories.setFrom(files(appTree, domainTree, coreCommonTree, dataTree))
 
     executionData.setFrom(
         files(
@@ -289,6 +338,9 @@ tasks.register<JacocoCoverageVerification>("jacocoTestCoverageVerification") {
             },
             fileTree(project(":core:common").layout.buildDirectory.get()) {
                 include("jacoco/test.exec")
+            },
+            fileTree(project(":data:product").layout.buildDirectory.get()) {
+                include("jacoco/testDebugUnitTest.exec")
             }
         )
     )
