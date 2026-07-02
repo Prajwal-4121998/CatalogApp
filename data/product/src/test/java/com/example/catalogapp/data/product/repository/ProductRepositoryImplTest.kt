@@ -15,8 +15,12 @@ import junit.framework.TestCase.assertNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
+import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.Before
 import org.junit.Test
+import retrofit2.HttpException
+import retrofit2.Response
+import java.net.SocketTimeoutException
 
 class ProductRepositoryImplTest {
     private val apiService: ProductApiService = mockk()
@@ -144,5 +148,69 @@ class ProductRepositoryImplTest {
         // Assert
         assertNull(result)
         coVerify(exactly = 0) { apiService.getProductById(any()) }
+    }
+
+    @Test
+    fun `refreshProducts handles SocketTimeoutException silently and serves stale cache`() = runTest {
+        // Arrange — stale cache, connected, but network times out
+        val staleTimestamp = System.currentTimeMillis() - (31 * 60 * 1000L)
+        every { productDao.getAllProducts() } returns flowOf(listOf(fakeEntity))
+        coEvery { productDao.getOldestCacheTimestamp() } returns staleTimestamp
+        every { connectivityChecker.isConnected() } returns true
+        coEvery { apiService.getProducts() } throws SocketTimeoutException()
+        coEvery { productDao.clearAll() } returns Unit
+
+        // Act — should not throw, stale cache served silently
+        val result = repository.getProducts().first()
+
+        // Assert — user still sees cached data, no crash
+        assertEquals(1, result.size)
+        assertEquals("Gold Ring", result[0].title)
+    }
+
+    @Test
+    fun `refreshProducts handles HttpException silently and serves stale cache`() = runTest {
+        // Arrange — stale cache, connected, but server returns 500
+        val staleTimestamp = System.currentTimeMillis() - (31 * 60 * 1000L)
+        every { productDao.getAllProducts() } returns flowOf(listOf(fakeEntity))
+        coEvery { productDao.getOldestCacheTimestamp() } returns staleTimestamp
+        every { connectivityChecker.isConnected() } returns true
+        coEvery { apiService.getProducts() } throws HttpException(
+            Response.error<Any>(
+                500,
+                "Internal Server Error".toResponseBody(null)
+            )
+        )
+        coEvery { productDao.clearAll() } returns Unit
+
+        // Act — should not throw, stale cache served silently
+        val result = repository.getProducts().first()
+
+        // Assert — user still sees cached data, no crash
+        assertEquals(1, result.size)
+    }
+
+    @Test
+    fun `mapper handles null rating defensively and defaults to zero`() = runTest {
+        // Arrange — DTO with null rating (real FakeStore API edge case)
+        val dtoWithNullRating = ProductDto(
+            id = 3,
+            title = "Test Product",
+            price = 100.0,
+            description = "Test description",
+            category = "test",
+            imageUrl = "https://example.com/test.png",
+            rating = null
+        )
+        coEvery { productDao.getProductById(3) } returns null
+        every { connectivityChecker.isConnected() } returns true
+        coEvery { apiService.getProductById(3) } returns dtoWithNullRating
+
+        // Act
+        val result = repository.getProductById(3)
+
+        // Assert — rating defaults to 0f, no NullPointerException
+        assertEquals(0f, result?.rating)
+        assertEquals("Test Product", result?.title)
     }
 }

@@ -179,7 +179,12 @@ tasks.register<JacocoReport>("jacocoTestReport") {
         "**/*Hilt*.*", "**/*Dagger*.*", "**/*_Factory*.*",
         "**/*MembersInjector*.*", "**/di/**",
         "**/hilt_aggregated_deps/**",
-        "**/dagger/hilt/**"
+        "**/dagger/hilt/**",
+        "**/*Database*.*",
+        "**/*Database_Impl*.*",
+        // Exclude Kotlin compiler-generated lambda/coroutine synthetic classes
+        "**/*\$*\$*.*",
+        "**/*\$inlined*.*"
     )
 
     val appTree = fileTree(layout.buildDirectory.get()) {
@@ -239,36 +244,36 @@ tasks.register<JacocoCoverageVerification>("jacocoTestCoverageVerification") {
     dependsOn("jacocoTestReport")
 
     violationRules {
+        // Overall app threshold — excludes generated/untestable code via fileFilter
         rule {
             limit {
-                // Recalibrated: DAOs and Room-generated classes legitimately show 0%
-                // Overall threshold will rise as feature module tests are added
-                minimum = "0.30".toBigDecimal()
-            }
-        }
-
-        rule {
-            element = "CLASS"
-            includes = listOf("com.example.catalogapp.domain.*")
-            limit {
-                minimum = "0.65".toBigDecimal()
-            }
-        }
-
-        rule {
-            element = "CLASS"
-            includes = listOf("com.example.catalogapp.data.product.repository.*")
-            limit {
-                // Repository has real logic — hold it to a higher bar
                 minimum = "0.55".toBigDecimal()
             }
         }
 
+        // Domain layer — pure business logic, highest bar
+        rule {
+            element = "CLASS"
+            includes = listOf("com.example.catalogapp.domain.*")
+            limit {
+                minimum = "0.70".toBigDecimal()
+            }
+        }
+
+        // Repository — critical class, must test error paths
+        rule {
+            element = "CLASS"
+            includes = listOf("com.example.catalogapp.data.product.repository.*")
+            limit {
+                minimum = "0.70".toBigDecimal()
+            }
+        }
+
+        // Mapper — simple pure functions, high bar achievable
         rule {
             element = "CLASS"
             includes = listOf("com.example.catalogapp.data.product.mapper.*")
             limit {
-                // Mapper is almost fully covered already
                 minimum = "0.85".toBigDecimal()
             }
         }
