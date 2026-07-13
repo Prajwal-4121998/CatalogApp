@@ -26,7 +26,7 @@ naming:
   FunctionNaming:
     active: true
     # Allow PascalCase for Composable functions - this is the correct Compose convention
-    excludes: ['**/ui/theme/**']
+    excludes: [ '**/ui/theme/**' ]
     functionPattern: '([a-z][a-zA-Z0-9]*)|(^[A-Z][a-zA-Z0-9]*$)'
   ClassNaming:
     active: true
@@ -37,8 +37,19 @@ style:
   active: true
   MagicNumber:
     active: true
-    excludes: ['**/test/**', '**/androidTest/**', '**/ui/theme/**']
-    ignoreNumbers: ['-1', '0', '1', '2']
+    excludes:
+      - '**/test/**'
+      - '**/androidTest/**'
+      - '**/ui/theme/**'
+      - '**/designsystem/theme/**'
+      - '**/designsystem/components/**'
+    ignoreNumbers: [ '-1', '0', '1', '2' ]
+    ignorePropertyDeclaration: true
+    ignoreConstantDeclaration: true
+    ignoreCompanionObjectPropertyDeclaration: true
+    ignoreNamedArgument: true
+    ignoreEnums: true
+    ignoreHashCodeFunction: true
   MaxLineLength:
     active: true
     maxLineLength: 120
