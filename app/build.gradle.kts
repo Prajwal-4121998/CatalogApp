@@ -130,9 +130,12 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
     implementation(libs.hilt.android)
+    ksp(libs.hilt.compiler)
     implementation(project(":data:product"))
     implementation(project(":core:designsystem"))
-    ksp(libs.hilt.compiler)
+    implementation(project(":feature:catalog"))
+    implementation(libs.androidx.navigation.compose)
+    implementation(libs.hilt.navigation.compose)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -166,7 +169,8 @@ tasks.register<JacocoReport>("jacocoTestReport") {
         "testDevDebugUnitTest",
         ":domain:product:test",
         ":core:common:test",
-        ":data:product:testDebugUnitTest"
+        ":data:product:testDebugUnitTest",
+        ":feature:catalog:testDebugUnitTest"
     )
 
     reports {
@@ -185,7 +189,15 @@ tasks.register<JacocoReport>("jacocoTestReport") {
         "**/*Database_Impl*.*",
         // Exclude Kotlin compiler-generated lambda/coroutine synthetic classes
         "**/*\$*\$*.*",
-        "**/*\$inlined*.*"
+        "**/*\$inlined*.*",
+        // Compose UI — requires instrumented tests, not JUnit
+        // Covered separately via androidTest ComposeTestRule
+        "**/ui/**",
+        "**/*Screen*.*",
+        "**/*Content*.*",
+        "**/*composable*.*",
+        // Feature module components — pure Compose, no unit testable logic
+        "**/components/**"
     )
 
     val appTree = fileTree(layout.buildDirectory.get()) {
@@ -211,16 +223,22 @@ tasks.register<JacocoReport>("jacocoTestReport") {
         exclude(fileFilter)
     }
 
+    val catalogTree = fileTree(project(":feature:catalog").layout.buildDirectory.get()) {
+        include("intermediates/built_in_kotlinc/debug/compileDebugKotlin/classes/**/*.class")
+        exclude(fileFilter)
+    }
+
     sourceDirectories.setFrom(
         files(
             "src/main/java",
             "${project(":domain:product").projectDir}/src/main/java",
             "${project(":core:common").projectDir}/src/main/java",
-            "${project(":data:product").projectDir}/src/main/java"
+            "${project(":data:product").projectDir}/src/main/java",
+            "${project(":feature:catalog").projectDir}/src/main/java"
         )
     )
 
-    classDirectories.setFrom(files(appTree, domainTree, coreCommonTree, dataTree))
+    classDirectories.setFrom(files(appTree, domainTree, coreCommonTree, dataTree, catalogTree))
 
     executionData.setFrom(
         files(
@@ -234,6 +252,9 @@ tasks.register<JacocoReport>("jacocoTestReport") {
                 include("jacoco/test.exec")
             },
             fileTree(project(":data:product").layout.buildDirectory.get()) {
+                include("jacoco/testDebugUnitTest.exec")
+            },
+            fileTree(project(":feature:catalog").layout.buildDirectory.get()) {
                 include("jacoco/testDebugUnitTest.exec")
             }
         )
@@ -278,6 +299,14 @@ tasks.register<JacocoCoverageVerification>("jacocoTestCoverageVerification") {
                 minimum = "0.85".toBigDecimal()
             }
         }
+
+        rule {
+            element = "CLASS"
+            includes = listOf("com.example.catalogapp.feature.catalog.*ViewModel*")
+            limit {
+                minimum = "0.75".toBigDecimal()
+            }
+        }
     }
 
     val fileFilter = listOf(
@@ -291,7 +320,15 @@ tasks.register<JacocoCoverageVerification>("jacocoTestCoverageVerification") {
         "**/*Database_Impl*.*",
         // Exclude Kotlin compiler-generated lambda/coroutine synthetic classes
         "**/*\$*\$*.*",
-        "**/*\$inlined*.*"
+        "**/*\$inlined*.*",
+        // Compose UI — requires instrumented tests, not JUnit
+        // Covered separately via androidTest ComposeTestRule
+        "**/ui/**",
+        "**/*Screen*.*",
+        "**/*Content*.*",
+        "**/*composable*.*",
+        // Feature module components — pure Compose, no unit testable logic
+        "**/components/**"
     )
 
     // Collect classes from all modules
@@ -318,16 +355,22 @@ tasks.register<JacocoCoverageVerification>("jacocoTestCoverageVerification") {
         exclude(fileFilter)
     }
 
+    val catalogTree = fileTree(project(":feature:catalog").layout.buildDirectory.get()) {
+        include("intermediates/built_in_kotlinc/debug/compileDebugKotlin/classes/**/*.class")
+        exclude(fileFilter)
+    }
+
     sourceDirectories.setFrom(
         files(
             "src/main/java",
             "${project(":domain:product").projectDir}/src/main/java",
             "${project(":core:common").projectDir}/src/main/java",
-            "${project(":data:product").projectDir}/src/main/java"
+            "${project(":data:product").projectDir}/src/main/java",
+            "${project(":feature:catalog").projectDir}/src/main/java"
         )
     )
 
-    classDirectories.setFrom(files(appTree, domainTree, coreCommonTree, dataTree))
+    classDirectories.setFrom(files(appTree, domainTree, coreCommonTree, dataTree, catalogTree))
 
     executionData.setFrom(
         files(
@@ -341,6 +384,9 @@ tasks.register<JacocoCoverageVerification>("jacocoTestCoverageVerification") {
                 include("jacoco/test.exec")
             },
             fileTree(project(":data:product").layout.buildDirectory.get()) {
+                include("jacoco/testDebugUnitTest.exec")
+            },
+            fileTree(project(":feature:catalog").layout.buildDirectory.get()) {
                 include("jacoco/testDebugUnitTest.exec")
             }
         )
