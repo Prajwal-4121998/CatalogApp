@@ -44,7 +44,10 @@ private val LightColorScheme = lightColorScheme(
     inverseOnSurface = InverseOnSurface,
     outline = Outline,
     outlineVariant = OutlineVariant,
-    scrim = Scrim
+    scrim = Scrim,
+    surfaceContainerLow = SurfaceContainerLow,
+    surfaceContainerLowest = SurfaceContainerLowest,
+    surfaceContainerHigh = SurfaceContainerHigh,
 )
 
 // ─── Dark color scheme ────────────────────────────────────────────────────────
@@ -75,6 +78,9 @@ private val DarkColorScheme = darkColorScheme(
     inverseOnSurface = InverseOnSurfaceDark,
     outline = OutlineDark,
     outlineVariant = OutlineVariantDark,
+    surfaceContainerLow = SurfaceContainerLow,
+    surfaceContainerLowest = SurfaceContainerLowest,
+    surfaceContainerHigh = SurfaceContainerHigh,
 )
 
 @Composable
@@ -91,6 +97,7 @@ fun CatalogTheme(
             if (darkTheme) dynamicDarkColorScheme(context)
             else dynamicLightColorScheme(context)
         }
+
         darkTheme -> DarkColorScheme
         else -> LightColorScheme
     }
