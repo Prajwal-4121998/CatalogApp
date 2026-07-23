@@ -6,6 +6,7 @@ plugins {
     alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
     alias(libs.plugins.detekt)
+    alias(libs.plugins.kotlin.serialization)
     jacoco
 }
 
@@ -134,8 +135,10 @@ dependencies {
     implementation(project(":data:product"))
     implementation(project(":core:designsystem"))
     implementation(project(":feature:catalog"))
+    implementation(project(":feature:detail"))
     implementation(libs.androidx.navigation.compose)
     implementation(libs.hilt.navigation.compose)
+    implementation(libs.kotlinx.serialization.json)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -170,7 +173,8 @@ tasks.register<JacocoReport>("jacocoTestReport") {
         ":domain:product:test",
         ":core:common:test",
         ":data:product:testDebugUnitTest",
-        ":feature:catalog:testDebugUnitTest"
+        ":feature:catalog:testDebugUnitTest",
+        ":feature:detail:testDebugUnitTest"
     )
 
     reports {
@@ -228,17 +232,32 @@ tasks.register<JacocoReport>("jacocoTestReport") {
         exclude(fileFilter)
     }
 
+    val detailTree = fileTree(project(":feature:detail").layout.buildDirectory.get()) {
+        include("intermediates/built_in_kotlinc/debug/compileDebugKotlin/classes/**/*.class")
+        exclude(fileFilter)
+    }
+
     sourceDirectories.setFrom(
         files(
             "src/main/java",
             "${project(":domain:product").projectDir}/src/main/java",
             "${project(":core:common").projectDir}/src/main/java",
             "${project(":data:product").projectDir}/src/main/java",
-            "${project(":feature:catalog").projectDir}/src/main/java"
+            "${project(":feature:catalog").projectDir}/src/main/java",
+            "${project(":feature:detail").projectDir}/src/main/java"
         )
     )
 
-    classDirectories.setFrom(files(appTree, domainTree, coreCommonTree, dataTree, catalogTree))
+    classDirectories.setFrom(
+        files(
+            appTree,
+            domainTree,
+            coreCommonTree,
+            dataTree,
+            catalogTree,
+            detailTree
+        )
+    )
 
     executionData.setFrom(
         files(
@@ -255,6 +274,9 @@ tasks.register<JacocoReport>("jacocoTestReport") {
                 include("jacoco/testDebugUnitTest.exec")
             },
             fileTree(project(":feature:catalog").layout.buildDirectory.get()) {
+                include("jacoco/testDebugUnitTest.exec")
+            },
+            fileTree(project(":feature:detail").layout.buildDirectory.get()) {
                 include("jacoco/testDebugUnitTest.exec")
             }
         )
@@ -303,6 +325,14 @@ tasks.register<JacocoCoverageVerification>("jacocoTestCoverageVerification") {
         rule {
             element = "CLASS"
             includes = listOf("com.example.catalogapp.feature.catalog.*ViewModel*")
+            limit {
+                minimum = "0.75".toBigDecimal()
+            }
+        }
+
+        rule {
+            element = "CLASS"
+            includes = listOf("com.example.catalogapp.feature.detail.*ViewModel*")
             limit {
                 minimum = "0.75".toBigDecimal()
             }
@@ -360,17 +390,32 @@ tasks.register<JacocoCoverageVerification>("jacocoTestCoverageVerification") {
         exclude(fileFilter)
     }
 
+    val detailTree = fileTree(project(":feature:detail").layout.buildDirectory.get()) {
+        include("intermediates/built_in_kotlinc/debug/compileDebugKotlin/classes/**/*.class")
+        exclude(fileFilter)
+    }
+
     sourceDirectories.setFrom(
         files(
             "src/main/java",
             "${project(":domain:product").projectDir}/src/main/java",
             "${project(":core:common").projectDir}/src/main/java",
             "${project(":data:product").projectDir}/src/main/java",
-            "${project(":feature:catalog").projectDir}/src/main/java"
+            "${project(":feature:catalog").projectDir}/src/main/java",
+            "${project(":feature:detail").projectDir}/src/main/java"
         )
     )
 
-    classDirectories.setFrom(files(appTree, domainTree, coreCommonTree, dataTree, catalogTree))
+    classDirectories.setFrom(
+        files(
+            appTree,
+            domainTree,
+            coreCommonTree,
+            dataTree,
+            catalogTree,
+            detailTree
+        )
+    )
 
     executionData.setFrom(
         files(
@@ -387,6 +432,9 @@ tasks.register<JacocoCoverageVerification>("jacocoTestCoverageVerification") {
                 include("jacoco/testDebugUnitTest.exec")
             },
             fileTree(project(":feature:catalog").layout.buildDirectory.get()) {
+                include("jacoco/testDebugUnitTest.exec")
+            },
+            fileTree(project(":feature:detail").layout.buildDirectory.get()) {
                 include("jacoco/testDebugUnitTest.exec")
             }
         )
