@@ -5,7 +5,9 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.toRoute
 import com.example.catalogapp.feature.catalog.CatalogScreen
+import com.example.catalogapp.feature.detail.DetailScreen
 
 @Composable
 fun CatalogNavHost(
@@ -13,19 +15,24 @@ fun CatalogNavHost(
 ) {
     NavHost(
         navController = navController,
-        startDestination = Screen.Catalog.route
+        startDestination = CatalogRoute
     ) {
-        composable(Screen.Catalog.route) {
+        composable<CatalogRoute> {
             CatalogScreen(
                 onNavigateToDetail = { productId ->
-                    navController.navigate(Screen.Detail.createRoute(productId))
+                    navController.navigate(DetailRoute(productId))
                 }
             )
         }
 
-        // Detail screen — added in next session
-        composable(Screen.Detail.route) {
-            // Placeholder until feature:detail is built
+        composable<DetailRoute> { backStackEntry ->
+            val route = backStackEntry.toRoute<DetailRoute>()
+            DetailScreen(
+                productId = route.productId,
+                onNavigateBack = { navController.popBackStack() }
+            )
         }
     }
 }
+
+
