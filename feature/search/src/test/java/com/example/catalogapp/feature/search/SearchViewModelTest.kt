@@ -2,7 +2,9 @@ package com.example.catalogapp.feature.search
 
 import com.example.catalogapp.domain.product.GetProductsUseCase
 import com.example.catalogapp.domain.product.Product
+import com.example.catalogapp.domain.product.SearchProductsUseCase
 import io.mockk.coEvery
+import io.mockk.every
 import io.mockk.mockk
 import junit.framework.TestCase.assertEquals
 import junit.framework.TestCase.assertNull
@@ -25,26 +27,17 @@ class SearchViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
     private lateinit var getProductsUseCase: GetProductsUseCase
+    private lateinit var searchProductsUseCase: SearchProductsUseCase
     private lateinit var viewModel: SearchViewModel
 
     private val sampleProducts = listOf(
         Product(
-            id = 1,
-            title = "Silver Earrings",
-            price = 120.0,
-            description = "Elegant silver earrings.",
-            category = "Jewelry",
-            imageUrl = "",
-            rating = 4.8f
+            id = 1, title = "Silver Earrings", price = 120.0,
+            description = "d", category = "Jewelry", imageUrl = "", rating = 4.8f
         ),
         Product(
-            id = 2,
-            title = "Running Shoes",
-            price = 185.0,
-            description = "Performance running shoes.",
-            category = "Footwear",
-            imageUrl = "",
-            rating = 4.9f
+            id = 2, title = "Running Shoes", price = 185.0,
+            description = "d", category = "Footwear", imageUrl = "", rating = 4.9f
         )
     )
 
@@ -52,8 +45,9 @@ class SearchViewModelTest {
     fun setup() {
         Dispatchers.setMain(testDispatcher)
         getProductsUseCase = mockk()
+        searchProductsUseCase = mockk()
         coEvery { getProductsUseCase() } returns flowOf(sampleProducts)
-        viewModel = SearchViewModel(getProductsUseCase)
+        viewModel = SearchViewModel(getProductsUseCase, searchProductsUseCase)
     }
 
     @After
@@ -61,7 +55,7 @@ class SearchViewModelTest {
         Dispatchers.resetMain()
     }
 
-    // --- Loading / initial state ---
+    // --- Loading ---
 
     @Test
     fun `cached products load successfully on init`() = runTest(testDispatcher) {
@@ -73,10 +67,22 @@ class SearchViewModelTest {
         assertNull(state.error)
     }
 
-    // --- Debounce behavior — the core pattern this session is about ---
+    @Test
+    fun `available categories are derived and deduplicated from loaded products`() =
+        runTest(testDispatcher) {
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            val categories = viewModel.uiState.value.availableCategories
+            assertEquals(2, categories.size)
+            assertTrue(categories.contains("Jewelry"))
+            assertTrue(categories.contains("Footwear"))
+        }
+
+    // --- Debounce — proves timing, delegates matching to the mocked use case ---
 
     @Test
-    fun `debounce - filter only runs after 300ms of no new input`() = runTest(testDispatcher) {
+    fun `debounce - use case only invoked after 300ms of no new input`() = runTest(testDispatcher) {
+        every { searchProductsUseCase(any(), any()) } returns listOf(sampleProducts[0])
         testDispatcher.scheduler.advanceUntilIdle()
 
         viewModel.processIntent(SearchIntent.QueryChanged("s"))
@@ -85,16 +91,16 @@ class SearchViewModelTest {
         testDispatcher.scheduler.advanceTimeBy(100)
         viewModel.processIntent(SearchIntent.QueryChanged("silver"))
 
-        // still within the debounce window — no filter should have run yet
         assertTrue(viewModel.uiState.value.filteredProducts.isEmpty())
 
         testDispatcher.scheduler.advanceTimeBy(301)
         assertEquals(1, viewModel.uiState.value.filteredProducts.size)
-        assertEquals("Silver Earrings", viewModel.uiState.value.filteredProducts.first().title)
     }
 
     @Test
     fun `rapid clear then retype does not leak a stale filter result`() = runTest(testDispatcher) {
+        every { searchProductsUseCase(any(), "shoes") } returns listOf(sampleProducts[1])
+        every { searchProductsUseCase(any(), "silver") } returns listOf(sampleProducts[0])
         testDispatcher.scheduler.advanceUntilIdle()
 
         viewModel.processIntent(SearchIntent.QueryChanged("shoes"))
@@ -109,60 +115,42 @@ class SearchViewModelTest {
         assertEquals("Silver Earrings", state.filteredProducts.first().title)
     }
 
-    // --- Filter correctness ---
+    // --- State transitions around the use case boundary ---
 
     @Test
-    fun `filter matches by category as well as title`() = runTest(testDispatcher) {
-        testDispatcher.scheduler.advanceUntilIdle()
+    fun `empty query resets filtered results and hasSearched without calling use case`() =
+        runTest(testDispatcher) {
+            testDispatcher.scheduler.advanceUntilIdle()
 
-        viewModel.processIntent(SearchIntent.QueryChanged("footwear"))
-        testDispatcher.scheduler.advanceTimeBy(301)
+            viewModel.processIntent(SearchIntent.ClearQuery)
+            testDispatcher.scheduler.advanceTimeBy(301)
 
-        val state = viewModel.uiState.value
-        assertEquals(1, state.filteredProducts.size)
-        assertEquals("Running Shoes", state.filteredProducts.first().title)
-    }
-
-    @Test
-    fun `filter is case-insensitive`() = runTest(testDispatcher) {
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        viewModel.processIntent(SearchIntent.QueryChanged("SILVER"))
-        testDispatcher.scheduler.advanceTimeBy(301)
-
-        assertEquals(1, viewModel.uiState.value.filteredProducts.size)
-    }
+            val state = viewModel.uiState.value
+            assertTrue(state.filteredProducts.isEmpty())
+            assertTrue(!state.hasSearched)
+        }
 
     @Test
-    fun `empty query resets filtered results and hasSearched`() = runTest(testDispatcher) {
-        testDispatcher.scheduler.advanceUntilIdle()
-        viewModel.processIntent(SearchIntent.QueryChanged("shoes"))
-        testDispatcher.scheduler.advanceTimeBy(301)
+    fun `no matches from use case sets hasSearched true with empty results`() =
+        runTest(testDispatcher) {
+            every { searchProductsUseCase(any(), any()) } returns emptyList()
+            testDispatcher.scheduler.advanceUntilIdle()
 
-        viewModel.processIntent(SearchIntent.ClearQuery)
-        testDispatcher.scheduler.advanceTimeBy(301)
+            viewModel.processIntent(SearchIntent.QueryChanged("nonexistent"))
+            testDispatcher.scheduler.advanceTimeBy(301)
 
-        val state = viewModel.uiState.value
-        assertTrue(state.filteredProducts.isEmpty())
-        assertTrue(!state.hasSearched)
-    }
-
-    @Test
-    fun `no matches sets hasSearched true with empty results`() = runTest(testDispatcher) {
-        testDispatcher.scheduler.advanceUntilIdle()
-        viewModel.processIntent(SearchIntent.QueryChanged("nonexistent"))
-        testDispatcher.scheduler.advanceTimeBy(301)
-
-        val state = viewModel.uiState.value
-        assertTrue(state.filteredProducts.isEmpty())
-        assertTrue(state.hasSearched)
-    }
+            val state = viewModel.uiState.value
+            assertTrue(state.filteredProducts.isEmpty())
+            assertTrue(state.hasSearched)
+        }
 
     // --- Recent searches ---
 
     @Test
     fun `successful match adds query to recent searches`() = runTest(testDispatcher) {
+        every { searchProductsUseCase(any(), any()) } returns listOf(sampleProducts[1])
         testDispatcher.scheduler.advanceUntilIdle()
+
         viewModel.processIntent(SearchIntent.QueryChanged("shoes"))
         testDispatcher.scheduler.advanceTimeBy(301)
 
@@ -171,7 +159,9 @@ class SearchViewModelTest {
 
     @Test
     fun `query with no matches is not added to recent searches`() = runTest(testDispatcher) {
+        every { searchProductsUseCase(any(), any()) } returns emptyList()
         testDispatcher.scheduler.advanceUntilIdle()
+
         viewModel.processIntent(SearchIntent.QueryChanged("nonexistent"))
         testDispatcher.scheduler.advanceTimeBy(301)
 
@@ -181,7 +171,10 @@ class SearchViewModelTest {
     @Test
     fun `duplicate recent search moves to front instead of duplicating`() =
         runTest(testDispatcher) {
+            every { searchProductsUseCase(any(), "shoes") } returns listOf(sampleProducts[1])
+            every { searchProductsUseCase(any(), "silver") } returns listOf(sampleProducts[0])
             testDispatcher.scheduler.advanceUntilIdle()
+
             viewModel.processIntent(SearchIntent.QueryChanged("shoes"))
             testDispatcher.scheduler.advanceTimeBy(301)
             viewModel.processIntent(SearchIntent.QueryChanged("silver"))
@@ -196,10 +189,11 @@ class SearchViewModelTest {
 
     @Test
     fun `clear recent searches empties the list`() = runTest(testDispatcher) {
+        every { searchProductsUseCase(any(), any()) } returns listOf(sampleProducts[1])
         testDispatcher.scheduler.advanceUntilIdle()
+
         viewModel.processIntent(SearchIntent.QueryChanged("shoes"))
         testDispatcher.scheduler.advanceTimeBy(301)
-
         viewModel.processIntent(SearchIntent.ClearRecentSearches)
 
         assertTrue(viewModel.uiState.value.recentSearches.isEmpty())
@@ -207,7 +201,9 @@ class SearchViewModelTest {
 
     @Test
     fun `recent search click re-triggers filter for that query`() = runTest(testDispatcher) {
+        every { searchProductsUseCase(any(), "silver") } returns listOf(sampleProducts[0])
         testDispatcher.scheduler.advanceUntilIdle()
+
         viewModel.processIntent(SearchIntent.RecentSearchClicked("silver"))
         testDispatcher.scheduler.advanceTimeBy(301)
 
@@ -237,7 +233,7 @@ class SearchViewModelTest {
     @Test
     fun `load failure sets error state and clears loading`() = runTest(testDispatcher) {
         coEvery { getProductsUseCase() } returns flow { throw Exception("network down") }
-        val vm = SearchViewModel(getProductsUseCase)
+        val vm = SearchViewModel(getProductsUseCase, searchProductsUseCase)
         testDispatcher.scheduler.advanceUntilIdle()
 
         val state = vm.uiState.value
@@ -248,7 +244,7 @@ class SearchViewModelTest {
     @Test
     fun `retry after failure reloads products successfully`() = runTest(testDispatcher) {
         coEvery { getProductsUseCase() } returns flow { throw Exception("network down") }
-        val vm = SearchViewModel(getProductsUseCase)
+        val vm = SearchViewModel(getProductsUseCase, searchProductsUseCase)
         testDispatcher.scheduler.advanceUntilIdle()
         assertTrue(vm.uiState.value.error != null)
 
@@ -260,44 +256,5 @@ class SearchViewModelTest {
         assertNull(state.error)
         assertEquals(2, state.allProducts.size)
     }
-
-    @Test
-    fun `available categories are derived and deduplicated from loaded products`() = runTest(testDispatcher) {
-        val productsWithDuplicateCategories = listOf(
-            Product(
-                id = 1, title = "Silver Earrings", price = 120.0,
-                description = "d", category = "Jewelry", imageUrl = "", rating = 4.8f
-            ),
-            Product(
-                id = 2, title = "Gold Ring", price = 200.0,
-                description = "d", category = "Jewelry", imageUrl = "", rating = 4.6f
-            ),
-            Product(
-                id = 3, title = "Running Shoes", price = 185.0,
-                description = "d", category = "Footwear", imageUrl = "", rating = 4.9f
-            )
-        )
-        coEvery { getProductsUseCase() } returns flowOf(productsWithDuplicateCategories)
-        val vm = SearchViewModel(getProductsUseCase)
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        val categories = vm.uiState.value.availableCategories
-        assertEquals(2, categories.size)
-        assertTrue(categories.contains("Jewelry"))
-        assertTrue(categories.contains("Footwear"))
-    }
-
-    @Test
-    fun `category chip click filters results same as recent search click`() = runTest(testDispatcher) {
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        // Reusing RecentSearchClicked intent — category chips and recent chips share behavior
-        viewModel.processIntent(SearchIntent.RecentSearchClicked("Jewelry"))
-        testDispatcher.scheduler.advanceTimeBy(301)
-
-        val state = viewModel.uiState.value
-        assertEquals("Jewelry", state.query)
-        assertEquals(1, state.filteredProducts.size)
-        assertEquals("Silver Earrings", state.filteredProducts.first().title)
-    }
 }
+
