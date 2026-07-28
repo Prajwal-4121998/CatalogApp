@@ -3,6 +3,7 @@ package com.example.catalogapp.feature.search
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.catalogapp.domain.product.GetProductsUseCase
+import com.example.catalogapp.domain.product.SearchProductsUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.channels.Channel
@@ -19,11 +20,13 @@ import javax.inject.Inject
 
 private const val DEBOUNCE_MILLIS = 300L
 private const val MAX_RECENT_SEARCHES = 5
-private const val LOAD_ERROR_MESSAGE = "Couldn't load products. Check your connection and try again."
+private const val LOAD_ERROR_MESSAGE =
+    "Couldn't load products. Check your connection and try again."
 
 @HiltViewModel
 class SearchViewModel @Inject constructor(
-    private val getProductsUseCase: GetProductsUseCase
+    private val getProductsUseCase: GetProductsUseCase,
+    private val searchProductsUseCase: SearchProductsUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SearchUiState())
@@ -56,17 +59,14 @@ class SearchViewModel @Inject constructor(
             getProductsUseCase()
                 .catch { exception ->
                     _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            error = exception.message ?: LOAD_ERROR_MESSAGE
-                        )
+                        it.copy(isLoading = false, error = exception.message ?: LOAD_ERROR_MESSAGE)
                     }
                 }
                 .collect { products ->
                     _uiState.update {
                         it.copy(
                             allProducts = products,
-                            availableCategories = products.map { product -> product.category }.distinct(),
+                            availableCategories = products.map { p -> p.category }.distinct(),
                             isLoading = false,
                             error = null
                         )
@@ -74,6 +74,7 @@ class SearchViewModel @Inject constructor(
                 }
         }
     }
+
     @OptIn(FlowPreview::class)
     private fun observeQueryChanges() {
         viewModelScope.launch {
@@ -90,15 +91,12 @@ class SearchViewModel @Inject constructor(
     }
 
     private fun filterProducts(query: String) {
-        val currentState = _uiState.value
         if (query.isBlank()) {
             _uiState.update { it.copy(filteredProducts = emptyList(), hasSearched = false) }
             return
         }
-        val matches = currentState.allProducts.filter { product ->
-            product.title.contains(query, ignoreCase = true) ||
-                    product.category.contains(query, ignoreCase = true)
-        }
+        val currentState = _uiState.value
+        val matches = searchProductsUseCase(currentState.allProducts, query)
         _uiState.update { it.copy(filteredProducts = matches, hasSearched = true) }
         if (matches.isNotEmpty()) addRecentSearch(query)
     }
@@ -119,3 +117,4 @@ class SearchViewModel @Inject constructor(
         }
     }
 }
+
