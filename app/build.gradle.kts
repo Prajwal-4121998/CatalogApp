@@ -136,6 +136,7 @@ dependencies {
     implementation(project(":core:designsystem"))
     implementation(project(":feature:catalog"))
     implementation(project(":feature:detail"))
+    implementation(project(":feature:search"))
     implementation(libs.androidx.navigation.compose)
     implementation(libs.hilt.navigation.compose)
     implementation(libs.kotlinx.serialization.json)
@@ -174,7 +175,8 @@ tasks.register<JacocoReport>("jacocoTestReport") {
         ":core:common:test",
         ":data:product:testDebugUnitTest",
         ":feature:catalog:testDebugUnitTest",
-        ":feature:detail:testDebugUnitTest"
+        ":feature:detail:testDebugUnitTest",
+        ":feature:search:testDebugUnitTest"
     )
 
     reports {
@@ -237,6 +239,11 @@ tasks.register<JacocoReport>("jacocoTestReport") {
         exclude(fileFilter)
     }
 
+    val searchTree = fileTree(project(":feature:search").layout.buildDirectory.get()) {
+        include("intermediates/built_in_kotlinc/debug/compileDebugKotlin/classes/**/*.class")
+        exclude(fileFilter)
+    }
+
     sourceDirectories.setFrom(
         files(
             "src/main/java",
@@ -244,7 +251,8 @@ tasks.register<JacocoReport>("jacocoTestReport") {
             "${project(":core:common").projectDir}/src/main/java",
             "${project(":data:product").projectDir}/src/main/java",
             "${project(":feature:catalog").projectDir}/src/main/java",
-            "${project(":feature:detail").projectDir}/src/main/java"
+            "${project(":feature:detail").projectDir}/src/main/java",
+            "${project(":feature:search").projectDir}/src/main/java"
         )
     )
 
@@ -255,7 +263,8 @@ tasks.register<JacocoReport>("jacocoTestReport") {
             coreCommonTree,
             dataTree,
             catalogTree,
-            detailTree
+            detailTree,
+            searchTree
         )
     )
 
@@ -277,6 +286,9 @@ tasks.register<JacocoReport>("jacocoTestReport") {
                 include("jacoco/testDebugUnitTest.exec")
             },
             fileTree(project(":feature:detail").layout.buildDirectory.get()) {
+                include("jacoco/testDebugUnitTest.exec")
+            },
+            fileTree(project(":feature:search").layout.buildDirectory.get()) {
                 include("jacoco/testDebugUnitTest.exec")
             }
         )
@@ -333,6 +345,14 @@ tasks.register<JacocoCoverageVerification>("jacocoTestCoverageVerification") {
         rule {
             element = "CLASS"
             includes = listOf("com.example.catalogapp.feature.detail.*ViewModel*")
+            limit {
+                minimum = "0.75".toBigDecimal()
+            }
+        }
+
+        rule {
+            element = "CLASS"
+            includes = listOf("com.example.catalogapp.feature.search.*ViewModel*")
             limit {
                 minimum = "0.75".toBigDecimal()
             }
@@ -395,6 +415,11 @@ tasks.register<JacocoCoverageVerification>("jacocoTestCoverageVerification") {
         exclude(fileFilter)
     }
 
+    val searchTree = fileTree(project(":feature:search").layout.buildDirectory.get()) {
+        include("intermediates/built_in_kotlinc/debug/compileDebugKotlin/classes/**/*.class")
+        exclude(fileFilter)
+    }
+
     sourceDirectories.setFrom(
         files(
             "src/main/java",
@@ -402,7 +427,8 @@ tasks.register<JacocoCoverageVerification>("jacocoTestCoverageVerification") {
             "${project(":core:common").projectDir}/src/main/java",
             "${project(":data:product").projectDir}/src/main/java",
             "${project(":feature:catalog").projectDir}/src/main/java",
-            "${project(":feature:detail").projectDir}/src/main/java"
+            "${project(":feature:detail").projectDir}/src/main/java",
+            "${project(":feature:search").projectDir}/src/main/java"
         )
     )
 
@@ -413,7 +439,8 @@ tasks.register<JacocoCoverageVerification>("jacocoTestCoverageVerification") {
             coreCommonTree,
             dataTree,
             catalogTree,
-            detailTree
+            detailTree,
+            searchTree
         )
     )
 
@@ -435,6 +462,9 @@ tasks.register<JacocoCoverageVerification>("jacocoTestCoverageVerification") {
                 include("jacoco/testDebugUnitTest.exec")
             },
             fileTree(project(":feature:detail").layout.buildDirectory.get()) {
+                include("jacoco/testDebugUnitTest.exec")
+            },
+            fileTree(project(":feature:search").layout.buildDirectory.get()) {
                 include("jacoco/testDebugUnitTest.exec")
             }
         )

@@ -21,10 +21,13 @@ import com.example.catalogapp.feature.catalog.components.CatalogBottomBar
 import com.example.catalogapp.feature.catalog.components.CatalogFab
 import com.example.catalogapp.feature.catalog.components.CatalogTopBar
 
+private const val SEARCH_TAB_INDEX = 1
+
 // ─── Top-level screen — owns ViewModel, handles effects ───────────────────────
 @Composable
 fun CatalogScreen(
     onNavigateToDetail: (Int) -> Unit,
+    onNavigateToSearch: () -> Unit,
     viewModel: CatalogViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -32,8 +35,8 @@ fun CatalogScreen(
         viewModel.effect.collect { effect ->
             when (effect) {
                 is CatalogEffect.NavigateToDetail -> onNavigateToDetail(effect.productId)
-                is CatalogEffect.NavigateToSearch -> { }
-                is CatalogEffect.ShowSnackbar -> { }
+                is CatalogEffect.NavigateToSearch -> onNavigateToSearch()
+                is CatalogEffect.ShowSnackbar -> {}
             }
         }
     }
@@ -62,7 +65,13 @@ internal fun CatalogContent(
         bottomBar = {
             CatalogBottomBar(
                 selectedIndex = selectedNavItem,
-                onItemSelected = { selectedNavItem = it }
+                onItemSelected = { index ->
+                    when (index) {
+                        SEARCH_TAB_INDEX -> onIntent(CatalogIntent.SearchClicked)
+                        else -> selectedNavItem =
+                            index // Home/Wishlist/Profile — visual only for now
+                    }
+                }
             )
         },
         floatingActionButton = {
@@ -119,8 +128,32 @@ internal fun CatalogErrorPreview() {
 }
 
 private val previewProducts = listOf(
-    Product(1, "Premium Stealth Titanium Smartwatch Series 9", 24999.0, "Great watch", "electronics", "", 4.8f),
-    Product(2, "Linen Heritage Slim-Fit Kurta - Emerald", 3450.0, "Great kurta", "men's clothing", "", 4.6f),
-    Product(3, "SonicFlow Noise-Cancelling Headphones", 18200.0, "Great headphones", "electronics", "", 4.9f),
+    Product(
+        1,
+        "Premium Stealth Titanium Smartwatch Series 9",
+        24999.0,
+        "Great watch",
+        "electronics",
+        "",
+        4.8f
+    ),
+    Product(
+        2,
+        "Linen Heritage Slim-Fit Kurta - Emerald",
+        3450.0,
+        "Great kurta",
+        "men's clothing",
+        "",
+        4.6f
+    ),
+    Product(
+        3,
+        "SonicFlow Noise-Cancelling Headphones",
+        18200.0,
+        "Great headphones",
+        "electronics",
+        "",
+        4.9f
+    ),
     Product(4, "Geometric Prism Gold Earrings", 12499.0, "Great earrings", "jewelery", "", 4.5f)
 )
