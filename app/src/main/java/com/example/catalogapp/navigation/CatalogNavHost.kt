@@ -8,6 +8,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import com.example.catalogapp.feature.catalog.CatalogScreen
 import com.example.catalogapp.feature.detail.DetailScreen
+import com.example.catalogapp.feature.search.SearchScreen
 
 @Composable
 fun CatalogNavHost(
@@ -21,6 +22,9 @@ fun CatalogNavHost(
             CatalogScreen(
                 onNavigateToDetail = { productId ->
                     navController.navigate(DetailRoute(productId))
+                },
+                onNavigateToSearch = {
+                    navController.navigate(SearchRoute)
                 }
             )
         }
@@ -30,6 +34,14 @@ fun CatalogNavHost(
             DetailScreen(
                 productId = route.productId,
                 onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable<SearchRoute> {
+            SearchScreen(
+                onNavigateToDetail = { productId ->
+                    navController.navigate(DetailRoute(productId))
+                }
             )
         }
     }

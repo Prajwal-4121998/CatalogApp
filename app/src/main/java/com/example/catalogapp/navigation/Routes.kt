@@ -12,3 +12,6 @@ object CatalogRoute
 
 @Serializable
 data class DetailRoute(val productId: Int)
+
+@Serializable
+object SearchRoute
