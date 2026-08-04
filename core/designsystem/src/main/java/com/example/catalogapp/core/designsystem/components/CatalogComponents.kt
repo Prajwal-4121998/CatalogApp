@@ -14,6 +14,10 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
@@ -21,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import com.example.catalogapp.core.designsystem.theme.CatalogTheme
 
 private const val RETRY_BUTTON_WIDTH_FRACTION = 0.6f
+private const val DEBOUNCE_INTERVAL_MS = 500L
 
 @Composable
 fun CatalogLoadingState(
@@ -101,5 +106,17 @@ fun CatalogEmptyState(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center
         )
+    }
+}
+
+@Composable
+fun rememberDebouncedOnClick(onClick: () -> Unit): () -> Unit {
+    var lastClickTimeMs by remember { mutableLongStateOf(0L) }
+    return {
+        val now = System.currentTimeMillis()
+        if (now - lastClickTimeMs >= DEBOUNCE_INTERVAL_MS) {
+            lastClickTimeMs = now
+            onClick()
+        }
     }
 }

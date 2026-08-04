@@ -17,13 +17,11 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.catalogapp.core.designsystem.components.CatalogErrorState
-import com.example.catalogapp.core.designsystem.components.CatalogLoadingState
+import com.example.catalogapp.core.designsystem.components.DetailSkeleton
 import com.example.catalogapp.core.designsystem.theme.CatalogTheme
 import com.example.catalogapp.domain.product.Product
+import com.example.catalogapp.feature.detail.components.DetailBody
 import com.example.catalogapp.feature.detail.components.DetailBottomBar
-import com.example.catalogapp.feature.detail.components.DetailContentCard
-import com.example.catalogapp.feature.detail.components.DetailHeroImage
-import com.example.catalogapp.feature.detail.components.DetailReviewsSection
 import com.example.catalogapp.feature.detail.components.DetailTopBar
 
 @Composable
@@ -80,10 +78,14 @@ internal fun DetailContent(
     ) { paddingValues ->
         Box(modifier = Modifier.fillMaxSize()) {
             when {
-                uiState.showLoading -> CatalogLoadingState()
+                uiState.showLoading -> DetailSkeleton(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(bottom = paddingValues.calculateBottomPadding())
+                )
                 uiState.showError -> CatalogErrorState(
                     message = uiState.error ?: "Unknown error",
-                    onRetry = { }
+                    onRetry = { onIntent(DetailIntent.RetryLoad) }
                 )
 
                 uiState.showContent -> {
@@ -108,44 +110,6 @@ internal fun DetailContent(
     }
 }
 
-@Composable
-private fun DetailBody(
-    product: Product,
-    uiState: DetailUiState,
-    onIntent: (DetailIntent) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val spacing = CatalogTheme.spacing
-    androidx.compose.foundation.layout.Column(modifier = modifier) {
-        // Hero image — full bleed, 4:5 aspect ratio
-        DetailHeroImage(
-            imageUrl = product.imageUrl,
-            title = product.title
-        )
-        // Content card overlapping hero by -mt-12 (48dp)
-        Box(
-            modifier = Modifier.padding(horizontal = spacing.md)
-        ) {
-            DetailContentCard(
-                product = product,
-                isDescriptionExpanded = uiState.isDescriptionExpanded,
-                onToggleDescription = { onIntent(DetailIntent.ToggleDescription) }
-            )
-        }
-        // Reviews section — OUTSIDE the white card, in surface background
-        Box(
-            modifier = Modifier.padding(
-                top = spacing.md,
-                start = spacing.md,
-                end = spacing.md,
-                bottom = spacing.xl
-            )
-        ) {
-            DetailReviewsSection()
-        }
-    }
-}
-
 @Preview(showBackground = true, name = "Detail - Content")
 @Composable
 internal fun DetailContentPreview() {
@@ -163,6 +127,17 @@ internal fun DetailLoadingPreview() {
     CatalogTheme {
         DetailContent(
             uiState = DetailUiState(isLoading = true),
+            onIntent = {}
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "Detail - Error")
+@Composable
+internal fun DetailErrorPreview() {
+    CatalogTheme {
+        DetailContent(
+            uiState = DetailUiState(error = "Product not found"),
             onIntent = {}
         )
     }

@@ -4,6 +4,7 @@ import com.example.catalogapp.domain.product.GetProductsUseCase
 import com.example.catalogapp.domain.product.Product
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.verify
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flowOf
@@ -150,7 +151,7 @@ class CatalogViewModelTest {
     }
 
     @Test
-    fun `RefreshProducts intent updates isRefreshing state`() = runTest {
+    fun `RefreshProducts intent re-fetches products via use case`() = runTest {
         every { getProductsUseCase() } returns flowOf(fakeProducts)
         viewModel = CatalogViewModel(getProductsUseCase)
         advanceUntilIdle()
@@ -158,10 +159,32 @@ class CatalogViewModelTest {
         viewModel.processIntent(CatalogIntent.RefreshProducts)
         advanceUntilIdle()
 
-        // After refresh completes, isRefreshing should be false
-        assertFalse(viewModel.uiState.value.isRefreshing)
+        val state = viewModel.uiState.value
+        assertFalse(state.isRefreshing)
+        assertEquals(2, state.products.size)
+        // getProductsUseCase() should fire once on init, once on refresh —
+        // this is what actually distinguishes a real refresh from the old no-op
+        verify(exactly = 2) { getProductsUseCase() }
     }
 
+    @Test
+    fun `RefreshProducts intent surfaces error without wiping existing products`() = runTest {
+        every { getProductsUseCase() } returns flowOf(fakeProducts)
+        viewModel = CatalogViewModel(getProductsUseCase)
+        advanceUntilIdle()
+
+        every { getProductsUseCase() } returns kotlinx.coroutines.flow.flow {
+            throw RuntimeException("Refresh failed")
+        }
+        viewModel.processIntent(CatalogIntent.RefreshProducts)
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertFalse(state.isRefreshing)
+        assertEquals("Refresh failed", state.error)
+        // Products from the successful initial load must survive a failed refresh
+        assertEquals(2, state.products.size)
+    }
     @Test
     fun `SearchClicked intent sends NavigateToSearch effect`() = runTest {
         every { getProductsUseCase() } returns flowOf(fakeProducts)

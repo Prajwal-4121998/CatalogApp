@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import com.example.catalogapp.core.designsystem.components.rememberDebouncedOnClick
 import com.example.catalogapp.core.designsystem.theme.CatalogTheme
 import com.example.catalogapp.domain.product.Product
 
@@ -31,7 +32,7 @@ internal fun ProductGrid(
         ) { product ->
             ProductCard(
                 product = product,
-                onClick = { onProductClick(product.id) }
+                onClick = rememberDebouncedOnClick { onProductClick(product.id) }
             )
         }
     }

@@ -10,16 +10,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
-import coil.compose.AsyncImage
-import coil.request.ImageRequest
+import com.example.catalogapp.core.designsystem.components.CatalogAsyncImage
+import com.example.catalogapp.core.designsystem.components.DetailHeroImageDefaults.GRADIENT_START_FRACTION
+import com.example.catalogapp.core.designsystem.components.DetailHeroImageDefaults.HERO_ASPECT_HEIGHT
+import com.example.catalogapp.core.designsystem.components.DetailHeroImageDefaults.HERO_ASPECT_WIDTH
 import com.example.catalogapp.core.designsystem.theme.CatalogTheme
-
-private const val HERO_ASPECT_WIDTH = 4f
-private const val HERO_ASPECT_HEIGHT = 5f
-private const val GRADIENT_START_FRACTION = 0.5f
 
 @Composable
 internal fun DetailHeroImage(
@@ -33,16 +29,10 @@ internal fun DetailHeroImage(
             // Stitch: aspect-[4/5] same as product card
             .aspectRatio(HERO_ASPECT_WIDTH / HERO_ASPECT_HEIGHT)
     ) {
-        AsyncImage(
-            model = ImageRequest.Builder(LocalContext.current)
-                .data(imageUrl)
-                .crossfade(true)
-                .build(),
+        CatalogAsyncImage(
+            imageUrl = imageUrl,
             contentDescription = title,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.surfaceVariant)
+            modifier = Modifier.fillMaxSize()
         )
         // Stitch: bg-gradient-to-t from-surface via-transparent to-transparent opacity-60
         // Gradient fades from surface color at bottom to transparent at top

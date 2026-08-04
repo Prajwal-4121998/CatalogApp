@@ -18,6 +18,7 @@ data class DetailUiState(
 // ─── Intent ───────────────────────────────────────────────────────────────────
 sealed class DetailIntent {
     data class LoadProduct(val productId: Int) : DetailIntent()
+    object RetryLoad : DetailIntent()
     object NavigateBack : DetailIntent()
     object ToggleWishlist : DetailIntent()
     object AddToCart : DetailIntent()

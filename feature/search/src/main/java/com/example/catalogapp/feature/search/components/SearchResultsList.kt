@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.example.catalogapp.core.designsystem.components.rememberDebouncedOnClick
 import com.example.catalogapp.core.designsystem.theme.CatalogTheme
 import com.example.catalogapp.domain.product.Product
 
@@ -20,7 +21,9 @@ fun SearchResultsList(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         items(products, key = { it.id }) { product ->
-            SearchResultCard(product = product, onClick = { onProductClicked(product.id) })
+            SearchResultCard(
+                product = product,
+                onClick = rememberDebouncedOnClick { onProductClicked(product.id) })
         }
     }
 }

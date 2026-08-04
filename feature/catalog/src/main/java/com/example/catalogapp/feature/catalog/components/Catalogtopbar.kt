@@ -11,6 +11,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import com.example.catalogapp.core.designsystem.components.rememberDebouncedOnClick
 
 // ─── Top App Bar — matches Stitch: menu icon + title + search ─────────────────
 @OptIn(ExperimentalMaterial3Api::class)
@@ -18,7 +19,7 @@ import androidx.compose.runtime.Composable
 internal fun CatalogTopBar(onSearchClick: () -> Unit) {
     TopAppBar(
         navigationIcon = {
-            IconButton(onClick = { }) {
+            IconButton(rememberDebouncedOnClick { }) {
                 Icon(
                     imageVector = Icons.Default.Menu,
                     contentDescription = "Menu",
@@ -34,7 +35,7 @@ internal fun CatalogTopBar(onSearchClick: () -> Unit) {
             )
         },
         actions = {
-            IconButton(onClick = onSearchClick) {
+            IconButton(onClick = rememberDebouncedOnClick(onSearchClick)) {
                 Icon(
                     imageVector = Icons.Default.Search,
                     contentDescription = "Search",

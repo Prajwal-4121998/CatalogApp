@@ -18,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.example.catalogapp.core.designsystem.components.rememberDebouncedOnClick
 import com.example.catalogapp.core.designsystem.theme.CatalogTheme
 
 private const val CHIP_CORNER_RADIUS_PERCENT = 50
@@ -41,7 +42,7 @@ internal fun RecentSearchesSection(
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.outline
             )
-            TextButton(onClick = onClearAll) {
+            TextButton(onClick = rememberDebouncedOnClick(onClearAll)) {
                 Text("Clear all")
             }
         }
@@ -49,7 +50,7 @@ internal fun RecentSearchesSection(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             recentSearches.forEach { search ->
-                RecentSearchChip(text = search, onClick = { onRecentClicked(search) })
+                RecentSearchChip(text = search, onClick = rememberDebouncedOnClick { onRecentClicked(search) })
             }
         }
     }

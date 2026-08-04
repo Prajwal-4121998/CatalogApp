@@ -23,10 +23,12 @@ class DetailViewModel @Inject constructor(
 
     private val _effect = Channel<DetailEffect>(Channel.BUFFERED)
     val effect = _effect.receiveAsFlow()
+    private var currentProductId: Int? = null
 
     fun processIntent(intent: DetailIntent) {
         when (intent) {
             is DetailIntent.LoadProduct -> loadProduct(intent.productId)
+            is DetailIntent.RetryLoad -> currentProductId?.let { loadProduct(it) }
             is DetailIntent.NavigateBack -> navigateBack()
             is DetailIntent.ToggleWishlist -> toggleWishlist()
             is DetailIntent.AddToCart -> addToCart()
@@ -36,6 +38,7 @@ class DetailViewModel @Inject constructor(
     }
 
     private fun loadProduct(productId: Int) {
+        currentProductId = productId
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
             val product = productRepository.getProductById(productId)

@@ -19,6 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.example.catalogapp.core.designsystem.components.rememberDebouncedOnClick
 import com.example.catalogapp.core.designsystem.theme.CatalogTheme
 
 private val PROMPT_TOP_PADDING = 48.dp
@@ -55,7 +56,7 @@ internal fun SearchPromptState(
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             categories.forEach { category ->
                 AssistChip(
-                    onClick = { onCategoryClicked(category) },
+                    onClick = rememberDebouncedOnClick { onCategoryClicked(category) },
                     label = { Text(category) }
                 )
             }

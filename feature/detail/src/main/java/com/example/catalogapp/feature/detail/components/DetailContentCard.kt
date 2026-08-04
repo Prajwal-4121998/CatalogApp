@@ -18,7 +18,7 @@ import com.example.catalogapp.domain.product.Product
 import com.example.catalogapp.feature.detail.previewProduct
 
 private const val CARD_CORNER = 24
-private const val CARD_OVERLAP_DP = 48
+private const val CARD_OVERLAP_DP = 28
 
 @Composable
 internal fun DetailContentCard(
@@ -28,7 +28,7 @@ internal fun DetailContentCard(
     modifier: Modifier = Modifier
 ) {
     val spacing = CatalogTheme.spacing
-    // Stitch: -mt-12 (48dp negative offset), rounded-3xl, surface-container-lowest, p-lg
+    // Stitch: -mt-12 (28dp negative offset), rounded-3xl, surface-container-lowest, p-lg
     Card(
         modifier = modifier
             .fillMaxWidth()
@@ -42,7 +42,6 @@ internal fun DetailContentCard(
         Column(modifier = Modifier.fillMaxWidth()) {
             // Product header: brand, title, rating, availability
             DetailProductHeader(product = product)
-            Spacer(modifier = Modifier.height(spacing.lg))
             // Price row
             DetailPriceSection(price = product.price)
             Spacer(modifier = Modifier.height(spacing.lg))

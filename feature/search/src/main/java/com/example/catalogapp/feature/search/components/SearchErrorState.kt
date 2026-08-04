@@ -17,6 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.example.catalogapp.core.designsystem.components.rememberDebouncedOnClick
 import com.example.catalogapp.core.designsystem.theme.CatalogTheme
 
 @Composable
@@ -36,7 +37,7 @@ fun SearchErrorState(message: String, onRetry: () -> Unit) {
         Spacer(modifier = Modifier.height(16.dp))
         Text(text = message, style = MaterialTheme.typography.bodyMedium)
         Spacer(modifier = Modifier.height(16.dp))
-        Button(onClick = onRetry) {
+        Button(onClick = rememberDebouncedOnClick(onRetry)) {
             Text("Retry")
         }
     }

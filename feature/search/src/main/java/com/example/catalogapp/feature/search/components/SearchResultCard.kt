@@ -23,12 +23,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import coil.compose.AsyncImage
+import com.example.catalogapp.core.designsystem.components.CatalogAsyncImage
 import com.example.catalogapp.core.designsystem.theme.CatalogTheme
 import com.example.catalogapp.domain.product.Product
 
@@ -46,22 +45,22 @@ fun SearchResultCard(product: Product, onClick: () -> Unit) {
             .padding(8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        AsyncImage(
-            model = product.imageUrl,
+        CatalogAsyncImage(
+            imageUrl = product.imageUrl,
             contentDescription = product.title,
-            contentScale = ContentScale.Crop,
             modifier = Modifier
                 .size(IMAGE_SIZE)
                 .clip(RoundedCornerShape(8.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant)
         )
         Spacer(modifier = Modifier.width(16.dp))
-        Extracted(product)
+        SearchResultInfo(product)
         Icon(Icons.Default.ChevronRight, contentDescription = null)
     }
 }
 
 @Composable
-private fun RowScope.Extracted(product: Product) {
+private fun RowScope.SearchResultInfo(product: Product) {
     Column(modifier = Modifier.weight(1f)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -92,7 +91,7 @@ private fun RowScope.Extracted(product: Product) {
         }
         Text(
             text = product.title,
-            style = MaterialTheme.typography.titleMedium,
+            style = MaterialTheme.typography.titleSmall,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.padding(top = 4.dp)
