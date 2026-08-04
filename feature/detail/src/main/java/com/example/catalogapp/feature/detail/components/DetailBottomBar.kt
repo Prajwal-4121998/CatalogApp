@@ -29,6 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.example.catalogapp.core.designsystem.components.rememberDebouncedOnClick
 import com.example.catalogapp.core.designsystem.theme.CatalogTheme
 
 private const val BOTTOM_BAR_HEIGHT = 96
@@ -71,7 +72,7 @@ internal fun DetailBottomBar(
 @Composable
 private fun WishlistButton(isWishlisted: Boolean, onClick: () -> Unit) {
     OutlinedButton(
-        onClick = onClick,
+        onClick = rememberDebouncedOnClick(onClick),
         modifier = Modifier.size(WISHLIST_BUTTON_SIZE.dp),
         shape = RoundedCornerShape(WISHLIST_CORNER.dp),
         border = BorderStroke(2.dp, MaterialTheme.colorScheme.primary),
@@ -92,7 +93,7 @@ private fun WishlistButton(isWishlisted: Boolean, onClick: () -> Unit) {
 private fun AddToCartButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
     val spacing = CatalogTheme.spacing
     Button(
-        onClick = onClick,
+        onClick = rememberDebouncedOnClick(onClick),
         modifier = modifier.height(CART_BUTTON_HEIGHT.dp),
         shape = RoundedCornerShape(CART_BUTTON_CORNER.dp),
         colors = ButtonDefaults.buttonColors(

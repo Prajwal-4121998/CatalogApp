@@ -26,23 +26,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import coil.compose.AsyncImage
-import coil.request.ImageRequest
+import com.example.catalogapp.core.designsystem.components.CatalogAsyncImage
+import com.example.catalogapp.core.designsystem.components.ProductCardDefaults
 import com.example.catalogapp.core.designsystem.theme.CatalogTheme
 import com.example.catalogapp.core.designsystem.theme.Spacing
 import com.example.catalogapp.domain.product.Product
 import java.util.Locale
-
-// ─── Layout constants (named to satisfy MagicNumber) ─────────────────────────
-private object ProductCardDefaults {
-    // 4:5 image aspect ratio for product cards
-    const val IMAGE_ASPECT_WIDTH = 4f
-    const val IMAGE_ASPECT_HEIGHT = 5f
-}
 
 private const val REVIEW_COUNT_MULTIPLIER = 100
 
@@ -86,23 +77,19 @@ private fun ProductImageSection(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            // Stitch: 4:5 aspect ratio
             .aspectRatio(
                 ProductCardDefaults.IMAGE_ASPECT_WIDTH /
                         ProductCardDefaults.IMAGE_ASPECT_HEIGHT
             )
     ) {
-        AsyncImage(
-            model = ImageRequest.Builder(LocalContext.current)
-                .data(product.imageUrl)
-                .crossfade(true)
-                .build(),
+        CatalogAsyncImage(
+            imageUrl = product.imageUrl,
             contentDescription = product.title,
-            contentScale = ContentScale.Crop,
             modifier = Modifier
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.surfaceVariant)
         )
+
         // Stitch: discount badge top-left, secondary-container color
         Box(
             modifier = Modifier
@@ -120,6 +107,7 @@ private fun ProductImageSection(
                 color = MaterialTheme.colorScheme.onSecondaryContainer
             )
         }
+
         // Stitch: wishlist button top-right, semi-transparent white
         Box(
             modifier = Modifier

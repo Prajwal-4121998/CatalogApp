@@ -78,9 +78,9 @@ private val DarkColorScheme = darkColorScheme(
     inverseOnSurface = InverseOnSurfaceDark,
     outline = OutlineDark,
     outlineVariant = OutlineVariantDark,
-    surfaceContainerLow = SurfaceContainerLow,
-    surfaceContainerLowest = SurfaceContainerLowest,
-    surfaceContainerHigh = SurfaceContainerHigh,
+    surfaceContainerLow = SurfaceContainerLowDark,
+    surfaceContainerLowest = SurfaceContainerLowestDark,
+    surfaceContainerHigh = SurfaceContainerHighDark,
 )
 
 @Composable

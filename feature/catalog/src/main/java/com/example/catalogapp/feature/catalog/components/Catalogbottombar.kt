@@ -15,6 +15,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import com.example.catalogapp.core.designsystem.components.rememberDebouncedOnClick
 
 private data class BottomNavItem(
     val label: String,
@@ -42,7 +43,7 @@ internal fun CatalogBottomBar(
         bottomNavItems.forEachIndexed { index, item ->
             NavigationBarItem(
                 selected = selectedIndex == index,
-                onClick = { onItemSelected(index) },
+                onClick = rememberDebouncedOnClick { onItemSelected(index) },
                 icon = {
                     Icon(
                         imageVector = if (selectedIndex == index) {

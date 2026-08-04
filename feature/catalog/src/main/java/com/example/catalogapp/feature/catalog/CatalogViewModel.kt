@@ -46,16 +46,24 @@ class CatalogViewModel @Inject constructor(
     }
 
     // ─── Private handlers ──────────────────────────────────────────────────────
+    private fun loadProducts() = fetchProducts(showAsRefresh = false)
+    private fun refreshProducts() = fetchProducts(showAsRefresh = true)
 
-    private fun loadProducts() {
+    private fun fetchProducts(showAsRefresh: Boolean) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, error = null) }
+            _uiState.update {
+                if (showAsRefresh) it.copy(isRefreshing = true) else it.copy(
+                    isLoading = true,
+                    error = null
+                )
+            }
 
             getProductsUseCase()
                 .catch { exception ->
                     _uiState.update {
                         it.copy(
                             isLoading = false,
+                            isRefreshing = false,
                             error = exception.message ?: "Failed to load products"
                         )
                     }
@@ -64,20 +72,12 @@ class CatalogViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isLoading = false,
+                            isRefreshing = false,
                             products = products,
                             error = null
                         )
                     }
                 }
-        }
-    }
-
-    private fun refreshProducts() {
-        viewModelScope.launch {
-            _uiState.update { it.copy(isRefreshing = true) }
-            // Repository's onStart mechanism handles actual refresh
-            // We just reset the state after a brief moment
-            _uiState.update { it.copy(isRefreshing = false) }
         }
     }
 

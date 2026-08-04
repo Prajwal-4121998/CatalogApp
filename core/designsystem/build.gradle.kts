@@ -35,4 +35,6 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.google.fonts)
     debugImplementation(libs.androidx.compose.ui.tooling)
+    implementation(libs.coil.compose)
+    implementation(libs.androidx.compose.material.icons.extended)
 }

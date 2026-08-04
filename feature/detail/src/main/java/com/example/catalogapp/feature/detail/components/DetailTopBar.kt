@@ -21,6 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.example.catalogapp.core.designsystem.components.rememberDebouncedOnClick
 import com.example.catalogapp.core.designsystem.theme.CatalogTheme
 
 private const val TOP_BAR_BUTTON_SIZE = 40
@@ -42,7 +43,7 @@ internal fun DetailTopBar(
         verticalAlignment = Alignment.CenterVertically
     ) {
         TopBarButton(
-            onClick = onBackClick
+            onClick = rememberDebouncedOnClick(onBackClick)
         ) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
@@ -53,7 +54,7 @@ internal fun DetailTopBar(
         }
 
         Row(horizontalArrangement = Arrangement.spacedBy(spacing.sm)) {
-            TopBarButton(onClick = onShareClick) {
+            TopBarButton(onClick = rememberDebouncedOnClick(onShareClick)) {
                 Icon(
                     imageVector = Icons.Default.Share,
                     contentDescription = null,
@@ -61,7 +62,7 @@ internal fun DetailTopBar(
                     tint = MaterialTheme.colorScheme.onSurface
                 )
             }
-            TopBarButton(onClick = { }) {
+            TopBarButton(onClick = rememberDebouncedOnClick { }) {
                 Icon(
                     imageVector = Icons.Default.ShoppingCart,
                     contentDescription = null,

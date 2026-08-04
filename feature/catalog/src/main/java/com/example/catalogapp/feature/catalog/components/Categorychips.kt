@@ -12,6 +12,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.example.catalogapp.core.designsystem.components.rememberDebouncedOnClick
 import com.example.catalogapp.core.designsystem.theme.CatalogTheme
 
 // ─── Category chips — matches Stitch exactly ─────────────────────────────────
@@ -25,13 +26,13 @@ internal fun CategoryChips(
     LazyRow(
         contentPadding = PaddingValues(horizontal = spacing.md),
         horizontalArrangement = Arrangement.spacedBy(spacing.sm),
-        modifier = Modifier.padding(vertical = spacing.md)
+        modifier = Modifier.padding(vertical = spacing.sm)
     ) {
         items(categories) { category ->
             CategoryChip(
                 label = category.replaceFirstChar { it.uppercase() },
                 isSelected = category == selectedCategory,
-                onClick = { onCategorySelected(category) }
+                onClick = rememberDebouncedOnClick { onCategorySelected(category) }
             )
         }
     }

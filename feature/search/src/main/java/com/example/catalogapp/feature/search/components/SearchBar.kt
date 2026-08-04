@@ -23,9 +23,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.example.catalogapp.core.designsystem.components.rememberDebouncedOnClick
 import com.example.catalogapp.core.designsystem.theme.CatalogTheme
 
 private val SEARCH_BAR_CORNER_RADIUS = 28.dp
+
 @Composable
 fun SearchBar(
     query: String,
@@ -49,7 +51,7 @@ fun SearchBar(
         leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
         trailingIcon = {
             if (query.isNotEmpty()) {
-                IconButton(onClick = onClear) {
+                IconButton(onClick = rememberDebouncedOnClick(onClear)) {
                     Icon(Icons.Default.Close, contentDescription = "Clear search")
                 }
             }
