@@ -9,6 +9,8 @@ import com.example.catalogapp.data.product.mapper.toDomainList
 import com.example.catalogapp.data.product.mapper.toEntityList
 import com.example.catalogapp.domain.product.Product
 import com.example.catalogapp.domain.product.ProductRepository
+import com.example.catalogapp.domain.product.SyncError
+import com.example.catalogapp.domain.product.SyncResult
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
@@ -49,6 +51,7 @@ class ProductRepositoryImpl @Inject constructor(
             ?: fetchProductByIdFromNetwork(id)
     }
 
+    override suspend fun syncProducts(): SyncResult = refreshProducts()
     // ─── Private helpers ──────────────────────────────────────────────────────
 
     private suspend fun shouldRefreshCache(): Boolean {
@@ -56,19 +59,25 @@ class ProductRepositoryImpl @Inject constructor(
         return System.currentTimeMillis() - oldestTimestamp > CACHE_THRESHOLD_MS
     }
 
-    private suspend fun refreshProducts() {
-        if (!connectivityChecker.isConnected()) return
-
-        try {
+    // refreshProducts() becomes the single source of truth for both callers
+    private suspend fun refreshProducts(): SyncResult {
+        if (!connectivityChecker.isConnected()) {
+            return SyncResult.Error(SyncError.NoInternet)
+        }
+        return try {
             val products = apiService.getProducts()
             productDao.clearAll()
             productDao.insertProducts(products.toEntityList())
+            SyncResult.Success
         } catch (e: SocketTimeoutException) {
             logError(NetworkError.Timeout, e)
+            SyncResult.Error(SyncError.Timeout)
         } catch (e: IOException) {
             logError(NetworkError.NoInternet, e)
+            SyncResult.Error(SyncError.NoInternet)
         } catch (e: HttpException) {
             logError(NetworkError.ServerError(e.code(), e.message()), e)
+            SyncResult.Error(SyncError.ServerError(e.code(), e.message()))
         }
     }
 

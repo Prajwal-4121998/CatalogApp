@@ -6,12 +6,15 @@ import com.example.catalogapp.core.network.dto.ProductDto
 import com.example.catalogapp.core.network.dto.RatingDto
 import com.example.catalogapp.data.product.local.dao.ProductDao
 import com.example.catalogapp.data.product.local.entity.ProductEntity
+import com.example.catalogapp.domain.product.SyncError
+import com.example.catalogapp.domain.product.SyncResult
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import junit.framework.TestCase.assertEquals
 import junit.framework.TestCase.assertNull
+import junit.framework.TestCase.assertTrue
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
@@ -151,22 +154,23 @@ class ProductRepositoryImplTest {
     }
 
     @Test
-    fun `refreshProducts handles SocketTimeoutException silently and serves stale cache`() = runTest {
-        // Arrange — stale cache, connected, but network times out
-        val staleTimestamp = System.currentTimeMillis() - (31 * 60 * 1000L)
-        every { productDao.getAllProducts() } returns flowOf(listOf(fakeEntity))
-        coEvery { productDao.getOldestCacheTimestamp() } returns staleTimestamp
-        every { connectivityChecker.isConnected() } returns true
-        coEvery { apiService.getProducts() } throws SocketTimeoutException()
-        coEvery { productDao.clearAll() } returns Unit
+    fun `refreshProducts handles SocketTimeoutException silently and serves stale cache`() =
+        runTest {
+            // Arrange — stale cache, connected, but network times out
+            val staleTimestamp = System.currentTimeMillis() - (31 * 60 * 1000L)
+            every { productDao.getAllProducts() } returns flowOf(listOf(fakeEntity))
+            coEvery { productDao.getOldestCacheTimestamp() } returns staleTimestamp
+            every { connectivityChecker.isConnected() } returns true
+            coEvery { apiService.getProducts() } throws SocketTimeoutException()
+            coEvery { productDao.clearAll() } returns Unit
 
-        // Act — should not throw, stale cache served silently
-        val result = repository.getProducts().first()
+            // Act — should not throw, stale cache served silently
+            val result = repository.getProducts().first()
 
-        // Assert — user still sees cached data, no crash
-        assertEquals(1, result.size)
-        assertEquals("Gold Ring", result[0].title)
-    }
+            // Assert — user still sees cached data, no crash
+            assertEquals(1, result.size)
+            assertEquals("Gold Ring", result[0].title)
+        }
 
     @Test
     fun `refreshProducts handles HttpException silently and serves stale cache`() = runTest {
@@ -212,5 +216,31 @@ class ProductRepositoryImplTest {
         // Assert — rating defaults to 0f, no NullPointerException
         assertEquals(0f, result?.rating)
         assertEquals("Test Product", result?.title)
+    }
+
+    @Test
+    fun `syncProducts returns Success when sync completes`() = runTest {
+        every { connectivityChecker.isConnected() } returns true
+        coEvery { apiService.getProducts() } returns listOf(fakeDto)
+        coEvery { productDao.clearAll() } returns Unit
+        coEvery { productDao.insertProducts(any()) } returns Unit
+
+        val result = repository.syncProducts()
+
+        assertTrue(result is SyncResult.Success)
+        coVerify { apiService.getProducts() }
+        coVerify { productDao.clearAll() }
+        coVerify { productDao.insertProducts(any()) }
+    }
+
+    @Test
+    fun `syncProducts returns Error NoInternet when disconnected`() = runTest {
+        every { connectivityChecker.isConnected() } returns false
+
+        val result = repository.syncProducts()
+
+        assertTrue(result is SyncResult.Error)
+        assertTrue((result as SyncResult.Error).reason is SyncError.NoInternet)
+        coVerify(exactly = 0) { apiService.getProducts() }
     }
 }
