@@ -14,8 +14,17 @@
 
 # Uncomment this to preserve the line number information for
 # debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+-keepattributes SourceFile,LineNumberTable
 
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+# Keep DTOs and their members to prevent Gson from failing to map JSON fields
+# when SerializedName is missing, and to support reflection-based parsers.
+-keep class com.example.catalogapp.core.network.dto.** { *; }
+
+# Keep Hilt Workers
+-keep @androidx.hilt.work.HiltWorker class * extends androidx.work.ListenableWorker {
+    <init>(...);
+}

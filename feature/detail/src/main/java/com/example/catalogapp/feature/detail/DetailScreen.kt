@@ -1,5 +1,6 @@
 package com.example.catalogapp.feature.detail
 
+import androidx.activity.compose.ReportDrawnWhen
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -13,6 +14,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -32,6 +34,8 @@ fun DetailScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+
+    ReportDrawnWhen { uiState.showContent }
 
     LaunchedEffect(productId) {
         viewModel.processIntent(DetailIntent.LoadProduct(productId))
@@ -96,6 +100,7 @@ internal fun DetailContent(
                         onIntent = onIntent,
                         modifier = Modifier
                             .fillMaxSize()
+                            .testTag("detail_content")
                             .padding(bottom = paddingValues.calculateBottomPadding())
                             .verticalScroll(scrollState)
                     )

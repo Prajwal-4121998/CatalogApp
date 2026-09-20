@@ -43,6 +43,7 @@ fun CatalogLoadingState(
     }
 }
 
+
 @Composable
 fun CatalogErrorState(
     message: String,
@@ -80,6 +81,7 @@ fun CatalogErrorState(
     }
 }
 
+
 @Composable
 fun CatalogEmptyState(
     message: String,
@@ -109,14 +111,29 @@ fun CatalogEmptyState(
     }
 }
 
+//
+//@Composable
+//fun rememberDebouncedOnClick(onClick: () -> Unit): () -> Unit {
+//    var lastClickTimeMs by remember { mutableLongStateOf(0L) }
+//    return {
+//        val now = System.currentTimeMillis()
+//        if (now - lastClickTimeMs >= DEBOUNCE_INTERVAL_MS) {
+//            lastClickTimeMs = now
+//            onClick()
+//        }
+//    }
+//}
+
 @Composable
 fun rememberDebouncedOnClick(onClick: () -> Unit): () -> Unit {
     var lastClickTimeMs by remember { mutableLongStateOf(0L) }
-    return {
-        val now = System.currentTimeMillis()
-        if (now - lastClickTimeMs >= DEBOUNCE_INTERVAL_MS) {
-            lastClickTimeMs = now
-            onClick()
+    return remember(onClick) {
+        {
+            val now = System.currentTimeMillis()
+            if ((now - lastClickTimeMs) >= DEBOUNCE_INTERVAL_MS) {
+                lastClickTimeMs = now
+                onClick()
+            }
         }
     }
 }

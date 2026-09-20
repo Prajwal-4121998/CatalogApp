@@ -47,6 +47,7 @@ internal fun SearchPromptState(
             text = "Search for products",
             style = MaterialTheme.typography.titleMedium
         )
+        Spacer(modifier = Modifier.height(8.dp))
         Text(
             text = "Try a name, or browse a category below",
             style = MaterialTheme.typography.bodyMedium,

@@ -1,8 +1,10 @@
 package com.example.catalogapp.feature.detail
 
+import androidx.compose.runtime.Immutable
 import com.example.catalogapp.domain.product.Product
 
 // ─── UI State ─────────────────────────────────────────────────────────────────
+@Immutable
 data class DetailUiState(
     val product: Product? = null,
     val isLoading: Boolean = false,

@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import com.example.catalogapp.core.designsystem.components.ProductCardSkeleton
 import com.example.catalogapp.core.designsystem.theme.LocalSpacing
 
@@ -17,7 +18,7 @@ internal fun ProductGridSkeleton(modifier: Modifier = Modifier) {
     val spacing = LocalSpacing.current
     LazyVerticalGrid(
         columns = GridCells.Fixed(GRID_COLUMN_COUNT),
-        modifier = modifier,
+        modifier = modifier.testTag("catalog_list"),
         contentPadding = PaddingValues(spacing.md),
         horizontalArrangement = spacedBy(spacing.sm),
         verticalArrangement = spacedBy(spacing.sm)

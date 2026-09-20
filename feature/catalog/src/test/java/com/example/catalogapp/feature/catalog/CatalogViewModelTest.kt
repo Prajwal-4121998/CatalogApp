@@ -2,11 +2,16 @@ package com.example.catalogapp.feature.catalog
 
 import com.example.catalogapp.domain.product.GetProductsUseCase
 import com.example.catalogapp.domain.product.Product
+import com.example.catalogapp.domain.product.ProductRepository
+import com.example.catalogapp.domain.product.SyncError
+import com.example.catalogapp.domain.product.SyncResult
+import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
-import io.mockk.verify
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -21,12 +26,14 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import kotlin.time.Duration.Companion.milliseconds
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class CatalogViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
     private val getProductsUseCase: GetProductsUseCase = mockk()
+    private val productRepository: ProductRepository = mockk()
     private lateinit var viewModel: CatalogViewModel
 
     private val fakeProducts = listOf(
@@ -44,24 +51,32 @@ class CatalogViewModelTest {
         Dispatchers.resetMain()
     }
 
+    private fun createViewModel() = CatalogViewModel(getProductsUseCase, productRepository)
+
+    // ─── Default stub for the LoadProducts path used by most tests ────────────
+    // LoadProducts now calls refreshIfStale(), not syncProducts() — every test
+    // that only cares about the "happy path" load should stub refreshIfStale().
+    private fun stubFreshCacheLoad() {
+        coEvery { productRepository.refreshIfStale() } returns null
+    }
+
     @Test
     fun `initial state before loading has empty products and no error`() = runTest {
         every { getProductsUseCase() } returns flowOf(fakeProducts)
-        viewModel = CatalogViewModel(getProductsUseCase)
+        stubFreshCacheLoad()
+        viewModel = createViewModel()
 
-        // Don't advance — check the default state before any coroutine runs
         val initialState = viewModel.uiState.value
         assertNull(initialState.error)
-        // Either loading or empty initially — both are valid before coroutines run
         assertFalse(initialState.showError)
         assertFalse(initialState.showProducts)
     }
 
     @Test
-    fun `LoadProducts intent loads products successfully`() = runTest {
+    fun `LoadProducts intent loads products and marks initial fetch complete`() = runTest {
         every { getProductsUseCase() } returns flowOf(fakeProducts)
-        viewModel = CatalogViewModel(getProductsUseCase)
-
+        stubFreshCacheLoad()
+        viewModel = createViewModel()
         advanceUntilIdle()
 
         val state = viewModel.uiState.value
@@ -72,12 +87,45 @@ class CatalogViewModelTest {
         assertFalse(state.showLoading)
         assertFalse(state.showError)
         assertFalse(state.showEmpty)
+        assertTrue(state.hasCompletedInitialFetch)
     }
+
+    @Test
+    fun `showEmpty only becomes true after refreshIfStale completes with genuinely empty results`() =
+        runTest {
+            every { getProductsUseCase() } returns flowOf(emptyList())
+            coEvery { productRepository.refreshIfStale() } returns SyncResult.Success
+            viewModel = createViewModel()
+            advanceUntilIdle()
+
+            val state = viewModel.uiState.value
+            assertTrue(state.hasCompletedInitialFetch)
+            assertTrue(state.showEmpty)
+            assertFalse(state.showLoading)
+        }
+
+    @Test
+    fun `showLoading stays true while refreshIfStale has not yet completed even with empty cache`() =
+        runTest {
+            every { getProductsUseCase() } returns flowOf(emptyList())
+            coEvery { productRepository.refreshIfStale() } coAnswers {
+                delay(Long.MAX_VALUE.milliseconds) // never resolves in this test
+                SyncResult.Success
+            }
+            viewModel = createViewModel()
+            testDispatcher.scheduler.advanceTimeBy(10)
+
+            val state = viewModel.uiState.value
+            assertFalse(state.hasCompletedInitialFetch)
+            assertTrue(state.showLoading)
+            assertFalse(state.showEmpty)
+        }
 
     @Test
     fun `SelectCategory intent filters products correctly`() = runTest {
         every { getProductsUseCase() } returns flowOf(fakeProducts)
-        viewModel = CatalogViewModel(getProductsUseCase)
+        stubFreshCacheLoad()
+        viewModel = createViewModel()
         advanceUntilIdle()
 
         viewModel.processIntent(CatalogIntent.SelectCategory("jewelery"))
@@ -92,7 +140,8 @@ class CatalogViewModelTest {
     @Test
     fun `SelectCategory All shows all products`() = runTest {
         every { getProductsUseCase() } returns flowOf(fakeProducts)
-        viewModel = CatalogViewModel(getProductsUseCase)
+        stubFreshCacheLoad()
+        viewModel = createViewModel()
         advanceUntilIdle()
 
         viewModel.processIntent(CatalogIntent.SelectCategory("jewelery"))
@@ -103,24 +152,25 @@ class CatalogViewModelTest {
     }
 
     @Test
-    fun `error from use case updates state correctly`() = runTest {
-        every { getProductsUseCase() } returns kotlinx.coroutines.flow.flow {
-            throw RuntimeException("Network error")
-        }
-        viewModel = CatalogViewModel(getProductsUseCase)
+    fun `refreshIfStale error surfaces in state without wiping cached products`() = runTest {
+        every { getProductsUseCase() } returns flowOf(fakeProducts)
+        coEvery { productRepository.refreshIfStale() } returns
+                SyncResult.Error(SyncError.NoInternet)
+        viewModel = createViewModel()
         advanceUntilIdle()
 
         val state = viewModel.uiState.value
         assertFalse(state.isLoading)
-        assertTrue(state.showError)
-        assertEquals("Network error", state.error)
-        assertTrue(state.products.isEmpty())
+        assertTrue(state.hasCompletedInitialFetch)
+        assertEquals(2, state.products.size)
+        assertTrue(state.showProducts)
     }
 
     @Test
     fun `categories derived from products include All plus unique categories`() = runTest {
         every { getProductsUseCase() } returns flowOf(fakeProducts)
-        viewModel = CatalogViewModel(getProductsUseCase)
+        stubFreshCacheLoad()
+        viewModel = createViewModel()
         advanceUntilIdle()
 
         val categories = viewModel.uiState.value.categories
@@ -133,14 +183,12 @@ class CatalogViewModelTest {
     @Test
     fun `ProductClicked intent sends NavigateToDetail effect`() = runTest {
         every { getProductsUseCase() } returns flowOf(fakeProducts)
-        viewModel = CatalogViewModel(getProductsUseCase)
+        stubFreshCacheLoad()
+        viewModel = createViewModel()
         advanceUntilIdle()
 
-        // Collect effect before sending intent
         var receivedEffect: CatalogEffect? = null
-        val job = launch {
-            viewModel.effect.collect { receivedEffect = it }
-        }
+        val job = launch { viewModel.effect.collect { receivedEffect = it } }
 
         viewModel.processIntent(CatalogIntent.ProductClicked(productId = 1))
         advanceUntilIdle()
@@ -151,9 +199,11 @@ class CatalogViewModelTest {
     }
 
     @Test
-    fun `RefreshProducts intent re-fetches products via use case`() = runTest {
+    fun `RefreshProducts intent always calls syncProducts, never refreshIfStale`() = runTest {
         every { getProductsUseCase() } returns flowOf(fakeProducts)
-        viewModel = CatalogViewModel(getProductsUseCase)
+        stubFreshCacheLoad()
+        coEvery { productRepository.syncProducts() } returns SyncResult.Success
+        viewModel = createViewModel()
         advanceUntilIdle()
 
         viewModel.processIntent(CatalogIntent.RefreshProducts)
@@ -162,45 +212,72 @@ class CatalogViewModelTest {
         val state = viewModel.uiState.value
         assertFalse(state.isRefreshing)
         assertEquals(2, state.products.size)
-        // getProductsUseCase() should fire once on init, once on refresh —
-        // this is what actually distinguishes a real refresh from the old no-op
-        verify(exactly = 2) { getProductsUseCase() }
+        // refreshIfStale fires once during initial LoadProducts (via init{})
+        coVerify(exactly = 1) { productRepository.refreshIfStale() }
+        // syncProducts fires once, only during the explicit RefreshProducts call
+        coVerify(exactly = 1) { productRepository.syncProducts() }
     }
 
     @Test
-    fun `RefreshProducts intent surfaces error without wiping existing products`() = runTest {
+    fun `RefreshProducts surfaces error without wiping existing products`() = runTest {
         every { getProductsUseCase() } returns flowOf(fakeProducts)
-        viewModel = CatalogViewModel(getProductsUseCase)
+        stubFreshCacheLoad()
+        viewModel = createViewModel()
         advanceUntilIdle()
 
-        every { getProductsUseCase() } returns kotlinx.coroutines.flow.flow {
-            throw RuntimeException("Refresh failed")
-        }
+        coEvery { productRepository.syncProducts() } returns
+                SyncResult.Error(SyncError.Timeout)
         viewModel.processIntent(CatalogIntent.RefreshProducts)
         advanceUntilIdle()
 
         val state = viewModel.uiState.value
         assertFalse(state.isRefreshing)
-        assertEquals("Refresh failed", state.error)
-        // Products from the successful initial load must survive a failed refresh
+        assertEquals("Failed to load products", state.error)
         assertEquals(2, state.products.size)
     }
+
     @Test
     fun `SearchClicked intent sends NavigateToSearch effect`() = runTest {
         every { getProductsUseCase() } returns flowOf(fakeProducts)
-        viewModel = CatalogViewModel(getProductsUseCase)
+        stubFreshCacheLoad()
+        viewModel = createViewModel()
         advanceUntilIdle()
 
         viewModel.processIntent(CatalogIntent.SearchClicked)
-        advanceUntilIdle()
 
         var receivedEffect: CatalogEffect? = null
-        val job = launch {
-            viewModel.effect.collect { receivedEffect = it }
-        }
+        val job = launch { viewModel.effect.collect { receivedEffect = it } }
         advanceUntilIdle()
         job.cancel()
 
         assertTrue(receivedEffect is CatalogEffect.NavigateToSearch)
+    }
+
+    @Test
+    fun `LoadProducts with fresh cache never calls syncProducts, only refreshIfStale`() = runTest {
+        every { getProductsUseCase() } returns flowOf(fakeProducts)
+        stubFreshCacheLoad()
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertTrue(state.hasCompletedInitialFetch)
+        assertFalse(state.isLoading)
+        assertNull(state.error)
+        coVerify(exactly = 1) { productRepository.refreshIfStale() }
+        coVerify(exactly = 0) { productRepository.syncProducts() }
+    }
+
+    @Test
+    fun `LoadProducts with stale cache calls refreshIfStale and surfaces its result`() = runTest {
+        every { getProductsUseCase() } returns flowOf(fakeProducts)
+        coEvery { productRepository.refreshIfStale() } returns SyncResult.Error(SyncError.Timeout)
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertTrue(state.hasCompletedInitialFetch)
+        assertEquals("Failed to load products", state.error)
+        assertEquals(2, state.products.size)
     }
 }

@@ -3,12 +3,13 @@ package com.example.catalogapp.feature.catalog
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.catalogapp.domain.product.GetProductsUseCase
+import com.example.catalogapp.domain.product.ProductRepository
+import com.example.catalogapp.domain.product.SyncResult
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -16,7 +17,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 class CatalogViewModel @Inject constructor(
-    private val getProductsUseCase: GetProductsUseCase
+    private val getProductsUseCase: GetProductsUseCase,
+    private val productRepository: ProductRepository
 ) : ViewModel() {
 
     // ─── State — single StateFlow, single source of truth ─────────────────────
@@ -58,31 +60,51 @@ class CatalogViewModel @Inject constructor(
                 )
             }
 
-            getProductsUseCase()
-                .catch { exception ->
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            isRefreshing = false,
-                            error = exception.message ?: "Failed to load products"
-                        )
-                    }
-                }
-                .collect { products ->
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            isRefreshing = false,
+            launch {
+                getProductsUseCase().collect { products ->
+                    _uiState.update { currentState ->
+                        val categories = listOf("All") + products.map { it.category }.distinct().sorted()
+                        currentState.copy(
                             products = products,
-                            error = null
+                            categories = categories,
+                            filteredProducts = if (currentState.selectedCategory == "All") {
+                                products
+                            } else {
+                                products.filter { it.category == currentState.selectedCategory }
+                            }
                         )
                     }
                 }
+            }
+            val result = if (showAsRefresh) {
+                // Explicit pull-to-refresh always hits network, regardless of freshness
+                productRepository.syncProducts()
+            } else {
+                // Initial load — only hits network if cache is actually stale
+                productRepository.refreshIfStale()
+            }
+            _uiState.update {
+                it.copy(
+                    isLoading = false,
+                    isRefreshing = false,
+                    hasCompletedInitialFetch = true,
+                    error = if (result is SyncResult.Error) "Failed to load products" else null
+                )
+            }
         }
     }
 
     private fun selectCategory(category: String) {
-        _uiState.update { it.copy(selectedCategory = category) }
+        _uiState.update { currentState ->
+            currentState.copy(
+                selectedCategory = category,
+                filteredProducts = if (category == "All") {
+                    currentState.products
+                } else {
+                    currentState.products.filter { it.category == category }
+                }
+            )
+        }
     }
 
     private fun navigateToDetail(productId: Int) {

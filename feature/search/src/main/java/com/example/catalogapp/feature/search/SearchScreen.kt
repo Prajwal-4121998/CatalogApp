@@ -12,6 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.tooling.preview.Preview
@@ -73,42 +74,58 @@ internal fun SearchContent(
             }
         }
     ) { paddingValues ->
-        Box(
+        SearchBody(
+            uiState = uiState,
+            onIntent = onIntent,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
                 .padding(horizontal = 16.dp)
                 .navigationBarsPadding()
-        ) {
-            when {
-                uiState.error != null -> SearchErrorState(
-                    message = uiState.error,
-                    onRetry = { onIntent(SearchIntent.RetryLoad) }
-                )
+        )
+    }
+}
 
-                uiState.isLoading -> CatalogLoadingState()
-                uiState.query.isBlank() -> {
-                    if (uiState.recentSearches.isNotEmpty()) {
-                        RecentSearchesSection(
-                            recentSearches = uiState.recentSearches,
-                            onRecentClicked = { onIntent(SearchIntent.RecentSearchClicked(it)) },
-                            onClearAll = { onIntent(SearchIntent.ClearRecentSearches) }
-                        )
-                    } else {
-                        SearchPromptState(
-                            categories = uiState.availableCategories,
-                            onCategoryClicked = { onIntent(SearchIntent.RecentSearchClicked(it)) }
-                        )
-                    }
+@Composable
+private fun SearchBody(
+    uiState: SearchUiState,
+    onIntent: (SearchIntent) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(modifier = modifier) {
+        when {
+            uiState.error != null -> SearchErrorState(
+                message = uiState.error,
+                onRetry = { onIntent(SearchIntent.RetryLoad) }
+            )
+
+            uiState.isLoading -> CatalogLoadingState()
+            uiState.query.isBlank() -> {
+                if (uiState.recentSearches.isNotEmpty()) {
+                    RecentSearchesSection(
+                        recentSearches = uiState.recentSearches,
+                        onRecentClicked = { onIntent(SearchIntent.RecentSearchClicked(it)) },
+                        onClearAll = { onIntent(SearchIntent.ClearRecentSearches) }
+                    )
+                } else {
+                    SearchPromptState(
+                        categories = uiState.availableCategories,
+                        onCategoryClicked = { onIntent(SearchIntent.RecentSearchClicked(it)) }
+                    )
                 }
+            }
 
-                uiState.hasSearched && uiState.filteredProducts.isEmpty() -> CatalogEmptyState(
-                    message = "No products found."
-                )
+            uiState.hasSearched && uiState.filteredProducts.isEmpty() -> CatalogEmptyState(
+                message = "No products found."
+            )
 
-                else -> SearchResultsList(
+            else -> {
+                val onProductClicked = remember(onIntent) {
+                    { productId: Int -> onIntent(SearchIntent.ProductClicked(productId)) }
+                }
+                SearchResultsList(
                     products = uiState.filteredProducts,
-                    onProductClicked = { onIntent(SearchIntent.ProductClicked(it)) }
+                    onProductClicked = onProductClicked
                 )
             }
         }

@@ -92,7 +92,7 @@ private fun RatingPill(rating: Float) {
             tint = MaterialTheme.colorScheme.secondary
         )
         Text(
-            text = String.format(Locale.getDefault(), "%.1f", rating),
+            text = String.format(Locale.US, "%.1f", rating),
             style = MaterialTheme.typography.labelLarge,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface

@@ -6,7 +6,6 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,8 +23,8 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.unit.dp
@@ -44,18 +43,17 @@ private val DetailSkeletonFeatureGridHeight = 96.dp
 private const val CARD_OVERLAP_DP = 48
 
 /**
- * Shared shimmer brush used by every skeleton in the design system.
- * Colors intentionally come from MaterialTheme so light/dark mode both work correctly.
+ * Optimized shimmer effect that runs in the draw phase to avoid recomposition.
  */
 @Composable
-internal fun rememberShimmerBrush(): Brush {
+internal fun Modifier.shimmerEffect(): Modifier {
     val shimmerColors = listOf(
         MaterialTheme.colorScheme.surfaceContainerHigh,
         MaterialTheme.colorScheme.surfaceContainerHighest,
         MaterialTheme.colorScheme.surfaceContainerHigh
     )
     val transition = rememberInfiniteTransition(label = "shimmer")
-    val translateAnimation by transition.animateFloat(
+    val translateAnimation = transition.animateFloat(
         initialValue = 0f,
         targetValue = SHIMMER_TRANSLATE_TARGET,
         animationSpec = infiniteRepeatable(
@@ -67,16 +65,21 @@ internal fun rememberShimmerBrush(): Brush {
         ),
         label = "shimmer_translate"
     )
-    return Brush.linearGradient(
-        colors = shimmerColors,
-        start = Offset(translateAnimation - SHIMMER_TRANSLATE_TARGET, 0f),
-        end = Offset(translateAnimation, SHIMMER_TRANSLATE_TARGET)
-    )
+
+    return this.drawBehind {
+        drawRect(
+            brush = Brush.linearGradient(
+                colors = shimmerColors,
+                start = Offset(translateAnimation.value - SHIMMER_TRANSLATE_TARGET, 0f),
+                end = Offset(translateAnimation.value, SHIMMER_TRANSLATE_TARGET)
+            )
+        )
+    }
 }
 
 @Composable
 private fun ShimmerBox(modifier: Modifier = Modifier) {
-    Column(modifier = modifier.background(rememberShimmerBrush())) {}
+    Column(modifier = modifier.shimmerEffect()) {}
 }
 
 @Composable
@@ -90,7 +93,7 @@ fun CategoryChipSkeleton(modifier: Modifier = Modifier) {
             modifier = Modifier
                 .width(ChipSkeletonWidthDp)
                 .height(ChipSkeletonHeightDp)
-                .background(rememberShimmerBrush())
+                .shimmerEffect()
         ) {}
     }
 }
@@ -110,7 +113,7 @@ fun CategoryChipRowSkeleton(modifier: Modifier = Modifier) {
                     modifier = Modifier
                         .width(width)
                         .height(ChipSkeletonHeightDp)
-                        .background(rememberShimmerBrush())
+                        .shimmerEffect()
                 ) {
                     CategoryChipSkeleton()
                 }
@@ -190,7 +193,7 @@ fun DetailSkeleton(modifier: Modifier = Modifier) {
             modifier = Modifier
                 .fillMaxWidth()
                 .aspectRatio(HERO_ASPECT_WIDTH / HERO_ASPECT_HEIGHT)
-                .background(rememberShimmerBrush())
+                .shimmerEffect()
         ) {}
 
         Box(modifier = Modifier.padding(horizontal = spacing.md)) {
@@ -231,14 +234,14 @@ private fun DetailSkeletonHeader() {
         modifier = Modifier
             .fillMaxWidth(0.7f)
             .height(spacing.lg)
-            .background(rememberShimmerBrush())
+            .shimmerEffect()
     ) {}
     Spacer(modifier = Modifier.height(spacing.sm))
     Column(
         modifier = Modifier
             .width(100.dp)
             .height(spacing.md)
-            .background(rememberShimmerBrush())
+            .shimmerEffect()
     ) {}
 }
 
@@ -249,7 +252,7 @@ private fun DetailSkeletonPriceAndFeatures() {
         modifier = Modifier
             .width(80.dp)
             .height(spacing.lg)
-            .background(rememberShimmerBrush())
+            .shimmerEffect()
     ) {}
     Spacer(modifier = Modifier.height(spacing.lg))
     Row(horizontalArrangement = Arrangement.spacedBy(spacing.sm)) {
@@ -258,7 +261,7 @@ private fun DetailSkeletonPriceAndFeatures() {
                 modifier = Modifier
                     .weight(1f)
                     .height(DetailSkeletonFeatureGridHeight)
-                    .background(rememberShimmerBrush())
+                    .shimmerEffect()
             ) {}
         }
     }
@@ -274,7 +277,7 @@ private fun DetailSkeletonDescriptionLines() {
                 modifier = Modifier
                     .fillMaxWidth(widthFraction)
                     .height(spacing.sm)
-                    .background(rememberShimmerBrush())
+                    .shimmerEffect()
             ) {}
         }
     }

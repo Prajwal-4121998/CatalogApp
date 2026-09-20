@@ -36,14 +36,14 @@ internal fun DetailPriceSection(
     ) {
         // Stitch: text-headline-lg-mobile font-bold text-on-surface
         Text(
-            text = "₹${String.format(Locale.getDefault(), "%,.0f", price)}",
+            text = "₹${String.format(Locale.US, "%,.0f", price)}",
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface
         )
         // Stitch: text-on-surface-variant line-through text-title-lg
         Text(
-            text = "₹${String.format(Locale.getDefault(), "%,.0f", originalPrice)}",
+            text = "₹${String.format(Locale.US, "%,.0f", originalPrice)}",
             style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textDecoration = TextDecoration.LineThrough

@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import com.example.catalogapp.data.product.local.entity.ProductEntity
 import kotlinx.coroutines.flow.Flow
 
@@ -23,4 +24,10 @@ interface ProductDao {
 
     @Query("SELECT cachedAt FROM products ORDER BY cachedAt ASC LIMIT 1")
     suspend fun getOldestCacheTimestamp(): Long?
+
+    @Transaction
+    suspend fun clearAndInsertProducts(products: List<ProductEntity>) {
+        clearAll()
+        insertProducts(products)
+    }
 }

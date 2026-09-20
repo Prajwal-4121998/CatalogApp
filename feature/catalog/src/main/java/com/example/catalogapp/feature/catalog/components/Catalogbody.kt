@@ -44,59 +44,50 @@ internal fun CatalogBody(
     modifier: Modifier = Modifier
 ) {
     val spacing = CatalogTheme.spacing
-    val state = uiState.contentState()
 
     PullToRefreshBox(
         isRefreshing = uiState.isRefreshing,
-        onRefresh = {
-            onIntent(CatalogIntent.RefreshProducts)
-        },
+        onRefresh = { onIntent(CatalogIntent.RefreshProducts) },
         modifier = modifier
     ) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            when (state) {
-                CatalogContentState.Loading -> CategoryChipRowSkeleton(
-                    modifier = Modifier.padding(horizontal = spacing.md, vertical = spacing.md)
-                )
-
-                else -> if (uiState.categories.size > 1) {
-                    CategoryChips(
-                        categories = uiState.categories,
-                        selectedCategory = uiState.selectedCategory,
-                        onCategorySelected = { category ->
-                            onIntent(
-                                CatalogIntent.SelectCategory(
-                                    category
-                                )
-                            )
-                        }
-                    )
-                }
-            }
-
-            AnimatedContent(
-                targetState = uiState.contentState(),
-                transitionSpec = {
-                    fadeIn(animationSpec = tween(CROSSFADE_DURATION_MS)) togetherWith
-                            fadeOut(animationSpec = tween(CROSSFADE_DURATION_MS))
-                },
-                label = "catalog_content_crossfade"
-            ) { state ->
+        AnimatedContent(
+            targetState = uiState.contentState(),
+            transitionSpec = {
+                fadeIn(animationSpec = tween(CROSSFADE_DURATION_MS)) togetherWith
+                        fadeOut(animationSpec = tween(CROSSFADE_DURATION_MS))
+            },
+            label = "catalog_content_crossfade"
+        ) { state ->
+            Column(modifier = Modifier.fillMaxSize()) {
                 when (state) {
-                    CatalogContentState.Loading -> ProductGridSkeleton()
+                    CatalogContentState.Loading -> {
+                        CategoryChipRowSkeleton(
+                            modifier = Modifier.padding(horizontal = spacing.md, vertical = spacing.md)
+                        )
+                        ProductGridSkeleton()
+                    }
                     CatalogContentState.Error -> CatalogErrorState(
                         message = uiState.error ?: "Unknown error",
                         onRetry = { onIntent(CatalogIntent.RetryLoad) }
                     )
-
                     CatalogContentState.Empty -> CatalogEmptyState(
                         message = "No products available right now."
                     )
-
-                    CatalogContentState.Products -> ProductGrid(
-                        products = uiState.filteredProducts,
-                        onProductClick = { id -> onIntent(CatalogIntent.ProductClicked(id)) }
-                    )
+                    CatalogContentState.Products -> {
+                        if (uiState.categories.size > 1) {
+                            CategoryChips(
+                                categories = uiState.categories,
+                                selectedCategory = uiState.selectedCategory,
+                                onCategorySelected = { category ->
+                                    onIntent(CatalogIntent.SelectCategory(category))
+                                }
+                            )
+                        }
+                        ProductGrid(
+                            products = uiState.filteredProducts,
+                            onProductClick = { id -> onIntent(CatalogIntent.ProductClicked(id)) }
+                        )
+                    }
                 }
             }
         }

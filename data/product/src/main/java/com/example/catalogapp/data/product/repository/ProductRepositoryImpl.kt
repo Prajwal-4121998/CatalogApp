@@ -14,16 +14,15 @@ import com.example.catalogapp.domain.product.SyncResult
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.onStart
+import retrofit2.HttpException
 import java.io.IOException
 import java.net.SocketTimeoutException
 import javax.inject.Inject
-import retrofit2.HttpException
 
 class ProductRepositoryImpl @Inject constructor(
     private val apiService: ProductApiService,
     private val productDao: ProductDao,
-    private val connectivityChecker: ConnectivityChecker
+    private val connectivityChecker: ConnectivityChecker,
 ) : ProductRepository {
 
     companion object {
@@ -34,14 +33,7 @@ class ProductRepositoryImpl @Inject constructor(
     override fun getProducts(): Flow<List<Product>> {
         return productDao.getAllProducts()
             .map { entities -> entities.toDomainList() }
-            .onStart {
-                // On first collection, decide whether to refresh from network
-                if (shouldRefreshCache()) {
-                    refreshProducts()
-                }
-            }
             .catch { _ ->
-                // Room Flow errors are rare but handle defensively
                 emit(emptyList())
             }
     }
@@ -52,6 +44,14 @@ class ProductRepositoryImpl @Inject constructor(
     }
 
     override suspend fun syncProducts(): SyncResult = refreshProducts()
+
+    override suspend fun refreshIfStale(): SyncResult? {
+        return if (shouldRefreshCache()) {
+            refreshProducts()
+        } else {
+            null
+        }
+    }
     // ─── Private helpers ──────────────────────────────────────────────────────
 
     private suspend fun shouldRefreshCache(): Boolean {
@@ -66,8 +66,7 @@ class ProductRepositoryImpl @Inject constructor(
         }
         return try {
             val products = apiService.getProducts()
-            productDao.clearAll()
-            productDao.insertProducts(products.toEntityList())
+            productDao.clearAndInsertProducts(products.toEntityList())
             SyncResult.Success
         } catch (e: SocketTimeoutException) {
             logError(NetworkError.Timeout, e)
