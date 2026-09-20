@@ -1,7 +1,9 @@
 package com.example.catalogapp.feature.search
 
+import androidx.compose.runtime.Immutable
 import com.example.catalogapp.domain.product.Product
 
+@Immutable
 data class SearchUiState(
     val query: String = "",
     val allProducts: List<Product> = emptyList(),
@@ -10,7 +12,7 @@ data class SearchUiState(
     val availableCategories: List<String> = emptyList(),
     val isLoading: Boolean = false,
     val hasSearched: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
 )
 
 sealed class SearchIntent {

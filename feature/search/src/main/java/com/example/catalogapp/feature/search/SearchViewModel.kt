@@ -57,9 +57,9 @@ class SearchViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
             getProductsUseCase()
-                .catch { exception ->
+                .catch { _ ->
                     _uiState.update {
-                        it.copy(isLoading = false, error = exception.message ?: LOAD_ERROR_MESSAGE)
+                        it.copy(isLoading = false, error = LOAD_ERROR_MESSAGE)
                     }
                 }
                 .collect { products ->

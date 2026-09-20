@@ -1,5 +1,6 @@
 package com.example.catalogapp.feature.catalog
 
+import androidx.activity.compose.ReportDrawnWhen
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -31,6 +32,9 @@ fun CatalogScreen(
     viewModel: CatalogViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    ReportDrawnWhen { !uiState.isLoading && uiState.products.isNotEmpty() }
+
     LaunchedEffect(Unit) {
         viewModel.effect.collect { effect ->
             when (effect) {

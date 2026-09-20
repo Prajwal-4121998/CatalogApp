@@ -43,14 +43,19 @@ fun CatalogAsyncImage(
     contentScale: ContentScale = ContentScale.Crop,
     placeholders: CatalogImagePlaceholders = CatalogImagePlaceholders.default()
 ) {
-    var isError by remember(imageUrl) { mutableStateOf(false) }
+    var isError by remember(imageUrl) { mutableStateOf(value = false) }
+    val context = LocalContext.current
+
+    val imageRequest = remember(imageUrl) {
+        ImageRequest.Builder(context)
+            .data(imageUrl)
+            .crossfade(IMAGE_CROSSFADE_DURATION_MS)
+            .build()
+    }
 
     Box(modifier = modifier.fillMaxSize()) {
         AsyncImage(
-            model = ImageRequest.Builder(LocalContext.current)
-                .data(imageUrl)
-                .crossfade(IMAGE_CROSSFADE_DURATION_MS)
-                .build(),
+            model = imageRequest,
             contentDescription = contentDescription,
             placeholder = placeholders.placeholder,
             error = placeholders.errorBackground,
@@ -59,14 +64,11 @@ fun CatalogAsyncImage(
             contentScale = contentScale,
             modifier = Modifier.fillMaxSize(),
         )
-
         if (isError) {
             Icon(
                 imageVector = Icons.Default.BrokenImage,
                 contentDescription = null,
-                modifier = Modifier
-                    .align(Alignment.Center)
-                    .then(Modifier),
+                modifier = Modifier.align(Alignment.Center),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
             )
         }

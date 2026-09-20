@@ -6,5 +6,6 @@ interface ProductRepository {
     fun getProducts(): Flow<List<Product>>
     suspend fun getProductById(id: Int): Product?
     suspend fun syncProducts(): SyncResult
+    suspend fun refreshIfStale(): SyncResult?
 }
 

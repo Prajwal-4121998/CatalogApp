@@ -10,27 +10,16 @@ data class CatalogUiState(
     val isLoading: Boolean = false,
     val isRefreshing: Boolean = false,
     val error: String? = null,
-    val selectedCategory: String = "All"
+    val selectedCategory: String = "All",
+    val hasCompletedInitialFetch: Boolean = false,
+    val categories: List<String> = listOf("All"),
+    val filteredProducts: List<Product> = emptyList()
 ) {
     // Derived state — computed from existing state, never stored separately
-    // This prevents impossible state combinations like isLoading=true + showProducts=true
-    val showLoading: Boolean get() = isLoading && products.isEmpty()
-    val showError: Boolean get() = error != null && !isLoading && products.isEmpty()
-    val showEmpty: Boolean get() = !isLoading && error == null && products.isEmpty()
+    val showLoading: Boolean get() = !hasCompletedInitialFetch && products.isEmpty() && error == null
+    val showError: Boolean get() = error != null && products.isEmpty()
+    val showEmpty: Boolean get() = hasCompletedInitialFetch && error == null && products.isEmpty()
     val showProducts: Boolean get() = products.isNotEmpty()
-
-    // Categories derived from product list — no separate state needed
-    val categories: List<String> get() = listOf("All") +
-            products.map { it.category }
-                .distinct()
-                .sorted()
-
-    // Filtered products based on selected category
-    val filteredProducts: List<Product> get() = if (selectedCategory == "All") {
-        products
-    } else {
-        products.filter { it.category == selectedCategory }
-    }
 }
 
 // ─── Intent — every possible user action, explicitly named ────────────────────

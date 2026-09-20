@@ -8,6 +8,8 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.dp
 import com.example.catalogapp.core.designsystem.components.rememberDebouncedOnClick
 import com.example.catalogapp.core.designsystem.theme.CatalogTheme
 import com.example.catalogapp.domain.product.Product
@@ -20,11 +22,13 @@ internal fun ProductGrid(
 ) {
     val spacing = CatalogTheme.spacing
     LazyVerticalGrid(
-        columns = GridCells.Fixed(2),
+        columns = GridCells.Adaptive(minSize = 128.dp),
         contentPadding = PaddingValues(spacing.md),
         horizontalArrangement = Arrangement.spacedBy(spacing.md),
         verticalArrangement = Arrangement.spacedBy(spacing.md),
-        modifier = Modifier.fillMaxSize()
+        modifier = Modifier
+            .fillMaxSize()
+            .testTag("catalog_list")
     ) {
         items(
             items = products,

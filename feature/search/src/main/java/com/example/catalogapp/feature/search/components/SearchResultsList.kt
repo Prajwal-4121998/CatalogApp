@@ -20,7 +20,11 @@ fun SearchResultsList(
         contentPadding = PaddingValues(vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        items(products, key = { it.id }) { product ->
+        items(
+            products,
+            key = { it.id },
+            contentType = { "product_result" }
+        ) { product ->
             SearchResultCard(
                 product = product,
                 onClick = rememberDebouncedOnClick { onProductClicked(product.id) })

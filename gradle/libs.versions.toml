@@ -30,6 +30,13 @@ hilt-work = "1.2.0"
 gson = "2.11.0"
 workTesting = "2.11.2"
 coreKtxVersion = "1.7.0"
+leakcanary = "2.14"
+junitKtx = "1.3.0"
+uiautomator = "2.2.0"
+baselineprofile = "1.5.0-rc02"
+androidx-benchmark-macro = "1.4.1"
+uiautomatorVersion = "2.4.0"
+
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -78,6 +85,11 @@ hilt-work = { group = "androidx.hilt", name = "hilt-work", version.ref = "hilt-w
 hilt-work-compiler = { group = "androidx.hilt", name = "hilt-compiler", version.ref = "hilt-work" }
 gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
 core-ktx = { group = "androidx.test", name = "core-ktx", version.ref = "coreKtxVersion" }
+leakcanary = { group = "com.squareup.leakcanary", name = "leakcanary-android", version.ref = "leakcanary" }
+androidx-junit-ktx = { group = "androidx.test.ext", name = "junit-ktx", version.ref = "junitKtx" }
+androidx-benchmark-macro-junit4 = { group = "androidx.benchmark", name = "benchmark-macro-junit4", version.ref = "androidx-benchmark-macro" }
+androidx-profileinstaller = { group = "androidx.profileinstaller", name = "profileinstaller", version = "1.4.1" }
+androidx-uiautomator = { group = "androidx.test.uiautomator", name = "uiautomator", version.ref = "uiautomatorVersion" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
@@ -89,4 +101,6 @@ hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin-serialization" }
+android-test = { id = "com.android.test", version.ref = "agp" }
+androidx-baselineprofile = { id = "androidx.baselineprofile", version.ref = "baselineprofile" }
 
