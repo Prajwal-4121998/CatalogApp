@@ -15,7 +15,7 @@
         android:theme="@style/Theme.CatalogApp">
         <profileable
             android:shell="true"
-            tools:targetApi="29,q" />
+            tools:targetApi="29" />
 
         <activity
             android:name=".MainActivity"
